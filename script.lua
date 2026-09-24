@@ -236,7 +236,7 @@ end
 local function chargePower()
 	local line = Workspace:FindFirstChild("Line")
 	if line then
-		local lineCFrame = line.CFrame * CFrame.new(0, 3, 3)
+		local lineCFrame = line.CFrame * CFrame.new(0, 3, 2)
 		tweenTo(lineCFrame, 0.5)
 	end
 
@@ -246,61 +246,77 @@ local function chargePower()
 	local effects = playerGui:WaitForChild("Effects")
 	local chargeBar = effects:WaitForChild("ChargeBar"):WaitForChild("Frame")
 	local bar = chargeBar:WaitForChild("BAR")
-	local top = chargeBar:WaitForChild("Levels"):WaitForChild("TOP")
 
 	repeat
 		task.wait(0.01)
-		local barTopY = bar.AbsolutePosition.Y
-		local targetTopY = top.AbsolutePosition.Y + top.AbsoluteSize.Y
-	until barTopY <= targetTopY or not stealEggEnabled
+	until bar.Size.Y.Scale >= 0.98 or not stealEggEnabled
 
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
 end
 
 local function getBestEgg()
 	local spawnedItems = Workspace:FindFirstChild("SpawnedItems")
-	if not spawnedItems then return nil end
+	if not spawnedItems then return nil, nil end
 
-	local bestEgg = nil
+	local bestPrompt = nil
+	local bestPart = nil
 	local highestScore = -1
 
-	for _, item in pairs(spawnedItems:GetDescendants()) do
-		if item:IsA("TextLabel") and item.Name == "RarityLabel" then
-			local rarityText = item.Text:lower()
-			local score = rarityWeights[rarityText] or 1
-			
-			local parentModel = item:FindFirstAncestorOfClass("Model")
-			if parentModel and score > highestScore then
-				highestScore = score
-				bestEgg = parentModel
+	for _, prompt in pairs(spawnedItems:GetDescendants()) do
+		if prompt:IsA("ProximityPrompt") and prompt.Name == "PickablePrompt" then
+			local pppPart = prompt.Parent
+			if pppPart and pppPart:IsA("BasePart") then
+				local billboard = pppPart:FindFirstChild("PlacedEggBillboard")
+				if billboard then
+					local rarityLabel = billboard:FindFirstChild("RarityLabel")
+					if rarityLabel and rarityLabel:IsA("TextLabel") then
+						local rarityText = rarityLabel.Text:lower()
+						local score = rarityWeights[rarityText] or 1
+
+						if score > highestScore then
+							highestScore = score
+							bestPrompt = prompt
+							bestPart = pppPart
+						end
+					end
+				end
 			end
 		end
 	end
 
-	return bestEgg
+	return bestPrompt, bestPart
 end
 
 local function stealBestEgg()
-	if not stealEggEnabled then return end
+	while stealEggEnabled do
+		chargePower()
 
-	chargePower()
+		task.wait(0.1)
 
-	local bestEgg = getBestEgg()
-	if bestEgg then
-		local prompt = bestEgg:FindFirstChildWhichIsA("ProximityPrompt", true)
-		local primaryPart = bestEgg.PrimaryPart or bestEgg:FindFirstChildWhichIsA("BasePart", true)
-
-		if primaryPart then
-			tweenTo(primaryPart.CFrame * CFrame.new(0, 3, 0), 0.6)
+		local prompt, targetPart = getBestEgg()
+		if prompt and targetPart then
+			tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 0.5)
 			
-			if prompt then
+			task.wait(0.1)
+			if fireproximityprompt then
 				fireproximityprompt(prompt)
-				task.wait(0.2)
+			else
+				VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+				task.wait(0.05)
+				VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
 			end
+			task.wait(0.3)
 		end
-	end
 
-	tweenToTrainingArea()
+		local line = Workspace:FindFirstChild("Line")
+		if line then
+			tweenTo(line.CFrame * CFrame.new(0, 3, 4), 0.5)
+		else
+			tweenToTrainingArea()
+		end
+
+		task.wait(0.5)
+	end
 end
 
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -362,7 +378,7 @@ end)
 task.spawn(function()
 	while true do
 		task.wait(0.5)
-		if autoTrainEnabled and not isTweening then
+		if autoTrainEnabled and not isTweening and not stealEggEnabled then
 			if not isPlayerInTrainingArea() then
 				tweenToTrainingArea()
 			end
