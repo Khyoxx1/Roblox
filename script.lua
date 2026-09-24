@@ -7,6 +7,18 @@ local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
 local autoTrainEnabled = false
+local stealEggEnabled = false
+
+local rarityWeights = {
+	common = 1, uncommon = 2, rare = 3, epic = 4, legendary = 5,
+	mythic = 6, divine = 7, secret = 8, cosmic = 9, eternal = 10,
+	admin = 11, cyber = 12, law = 13, titanium = 14, magical = 15,
+	nightfall = 16, frosty = 17, lightning = 18, god = 19, special = 20,
+	angelic = 21, demonic = 22, ink = 23, alien = 24, circus = 25,
+	cloud = 26, ["1x1x1x1"] = 27, easter = 28, normal = 1, golden = 5,
+	gold = 5, candy = 6, diamond = 8, void = 10, sungod = 15,
+	rainbow = 18, animatedrainbow = 22
+}
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AutoTrainGui"
@@ -15,7 +27,7 @@ screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 180, 0, 46)
+mainFrame.Size = UDim2.new(0, 180, 0, 84)
 mainFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
 mainFrame.BackgroundTransparency = 0.15
@@ -35,20 +47,20 @@ mainStroke.Parent = mainFrame
 
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Name = "TitleLabel"
-titleLabel.Size = UDim2.new(1, -50, 1, 0)
-titleLabel.Position = UDim2.new(0, 14, 0, 0)
+titleLabel.Size = UDim2.new(1, -50, 0, 36)
+titleLabel.Position = UDim2.new(0, 14, 0, 4)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "Auto Train"
 titleLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
-titleLabel.TextSize = 15
+titleLabel.TextSize = 14
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = mainFrame
 
 local checkboxButton = Instance.new("TextButton")
 checkboxButton.Name = "CheckboxButton"
-checkboxButton.Size = UDim2.new(0, 26, 0, 26)
-checkboxButton.Position = UDim2.new(1, -38, 0.5, -13)
+checkboxButton.Size = UDim2.new(0, 22, 0, 22)
+checkboxButton.Position = UDim2.new(1, -34, 0, 11)
 checkboxButton.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
 checkboxButton.BorderSizePixel = 0
 checkboxButton.Text = ""
@@ -70,9 +82,50 @@ checkmarkLabel.Size = UDim2.new(1, 0, 1, 0)
 checkmarkLabel.BackgroundTransparency = 1
 checkmarkLabel.Text = ""
 checkmarkLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-checkmarkLabel.TextSize = 16
+checkmarkLabel.TextSize = 14
 checkmarkLabel.Font = Enum.Font.GothamBold
 checkmarkLabel.Parent = checkboxButton
+
+local titleLabel2 = Instance.new("TextLabel")
+titleLabel2.Name = "TitleLabel2"
+titleLabel2.Size = UDim2.new(1, -50, 0, 36)
+titleLabel2.Position = UDim2.new(0, 14, 0, 44)
+titleLabel2.BackgroundTransparency = 1
+titleLabel2.Text = "Steal Egg"
+titleLabel2.TextColor3 = Color3.fromRGB(240, 240, 240)
+titleLabel2.TextSize = 14
+titleLabel2.Font = Enum.Font.GothamBold
+titleLabel2.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel2.Parent = mainFrame
+
+local checkboxButton2 = Instance.new("TextButton")
+checkboxButton2.Name = "CheckboxButton2"
+checkboxButton2.Size = UDim2.new(0, 22, 0, 22)
+checkboxButton2.Position = UDim2.new(1, -34, 0, 51)
+checkboxButton2.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+checkboxButton2.BorderSizePixel = 0
+checkboxButton2.Text = ""
+checkboxButton2.AutoButtonColor = false
+checkboxButton2.Parent = mainFrame
+
+local checkboxCorner2 = Instance.new("UICorner")
+checkboxCorner2.CornerRadius = UDim.new(0, 6)
+checkboxCorner2.Parent = checkboxButton2
+
+local checkboxStroke2 = Instance.new("UIStroke")
+checkboxStroke2.Color = Color3.fromRGB(80, 80, 95)
+checkboxStroke2.Thickness = 1.5
+checkboxStroke2.Parent = checkboxButton2
+
+local checkmarkLabel2 = Instance.new("TextLabel")
+checkmarkLabel2.Name = "Checkmark2"
+checkmarkLabel2.Size = UDim2.new(1, 0, 1, 0)
+checkmarkLabel2.BackgroundTransparency = 1
+checkmarkLabel2.Text = ""
+checkmarkLabel2.TextColor3 = Color3.fromRGB(255, 255, 255)
+checkmarkLabel2.TextSize = 14
+checkmarkLabel2.Font = Enum.Font.GothamBold
+checkmarkLabel2.Parent = checkboxButton2
 
 local dragging = false
 local dragStart = nil
@@ -125,6 +178,20 @@ local function getMyPlot()
 end
 
 local isTweening = false
+local function tweenTo(targetCFrame, speedTime)
+	local character = LocalPlayer.Character
+	if not character then return end
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	isTweening = true
+	local tweenInfo = TweenInfo.new(speedTime or 0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
+	tween:Play()
+	tween.Completed:Wait()
+	isTweening = false
+end
+
 local function tweenToTrainingArea()
 	if isTweening then return end
 
@@ -140,15 +207,8 @@ local function tweenToTrainingArea()
 	if not hrp then return end
 
 	local targetCFrame = placeholder.CFrame * CFrame.new(0, 3, 0)
-	
 	if (hrp.Position - targetCFrame.Position).Magnitude > 4 then
-		isTweening = true
-		local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-		local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
-		tween:Play()
-		tween.Completed:Connect(function()
-			isTweening = false
-		end)
+		tweenTo(targetCFrame, 0.4)
 	end
 end
 
@@ -164,14 +224,81 @@ local function isPlayerInTrainingArea()
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return false end
 
-	local distance = (hrp.Position - placeholder.Position).Magnitude
-	return distance <= 6
+	return (hrp.Position - placeholder.Position).Magnitude <= 6
 end
 
 local function jump()
 	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
 	task.wait(0.05)
 	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+end
+
+local function chargePower()
+	local line = Workspace:FindFirstChild("Line")
+	if line then
+		local lineCFrame = line.CFrame * CFrame.new(0, 3, 3)
+		tweenTo(lineCFrame, 0.5)
+	end
+
+	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+
+	local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+	local effects = playerGui:WaitForChild("Effects")
+	local chargeBar = effects:WaitForChild("ChargeBar"):WaitForChild("Frame")
+	local bar = chargeBar:WaitForChild("Bar")
+	local top = chargeBar:WaitForChild("Levels"):WaitForChild("Top")
+
+	repeat
+		task.wait(0.02)
+	until bar.AbsolutePosition.Y <= top.AbsolutePosition.Y or not stealEggEnabled
+
+	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+end
+
+local function getBestEgg()
+	local spawnedItems = Workspace:FindFirstChild("SpawnedItems")
+	if not spawnedItems then return nil end
+
+	local bestEgg = nil
+	local highestScore = -1
+
+	for _, item in pairs(spawnedItems:GetDescendants()) do
+		if item:IsA("TextLabel") and item.Name == "RarityLabel" then
+			local rarityText = item.Text:lower()
+			local score = rarityWeights[rarityText] or 1
+			
+			local parentModel = item:FindFirstAncestorOfClass("Model")
+			if parentModel and score > highestScore then
+				highestScore = score
+				bestEgg = parentModel
+			end
+		end
+	end
+
+	return bestEgg
+end
+
+local function stealBestEgg()
+	if not stealEggEnabled then return end
+
+	chargePower()
+
+	local bestEgg = getBestEgg()
+	if bestEgg then
+		local prompt = bestEgg:FindFirstChildWhichIsA("ProximityPrompt", true)
+		local primaryPart = bestEgg.PrimaryPart or bestEgg:FindFirstChildWhichIsA("BasePart", true)
+
+		if primaryPart then
+			tweenTo(primaryPart.CFrame * CFrame.new(0, 3, 0), 0.6)
+			
+			if prompt then
+				fireproximityprompt(prompt)
+				task.wait(0.2)
+			end
+		end
+	end
+
+	tweenToTrainingArea()
 end
 
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -216,10 +343,24 @@ checkboxButton.MouseButton1Click:Connect(function()
 	end
 end)
 
+checkboxButton2.MouseButton1Click:Connect(function()
+	stealEggEnabled = not stealEggEnabled
+	if stealEggEnabled then
+		checkboxButton2.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+		checkboxStroke2.Color = Color3.fromRGB(46, 204, 113)
+		checkmarkLabel2.Text = "✓"
+		task.spawn(stealBestEgg)
+	else
+		checkboxButton2.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+		checkboxStroke2.Color = Color3.fromRGB(80, 80, 95)
+		checkmarkLabel2.Text = ""
+	end
+end)
+
 task.spawn(function()
 	while true do
 		task.wait(0.5)
-		if autoTrainEnabled then
+		if autoTrainEnabled and not isTweening then
 			if not isPlayerInTrainingArea() then
 				tweenToTrainingArea()
 			end
