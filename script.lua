@@ -186,8 +186,8 @@ local function tweenTo(targetCFrame, speedStuds)
 
 	isTweening = true
 	local distance = (hrp.Position - targetCFrame.Position).Magnitude
-	local speed = speedStuds or 12
-	local duration = math.clamp(distance / speed, 1, 15)
+	local speed = speedStuds or 22
+	local duration = math.clamp(distance / speed, 0.3, 8)
 	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
 	tween:Play()
@@ -211,7 +211,7 @@ local function tweenToTrainingArea()
 
 	local targetCFrame = placeholder.CFrame * CFrame.new(0, 3, 0)
 	if (hrp.Position - targetCFrame.Position).Magnitude > 4 then
-		tweenTo(targetCFrame, 12)
+		tweenTo(targetCFrame, 22)
 	end
 end
 
@@ -240,29 +240,27 @@ local function chargePower()
 	local line = Workspace:FindFirstChild("Line")
 	if line then
 		local lineCFrame = line.CFrame * CFrame.new(0, 3, -18)
-		tweenTo(lineCFrame, 12)
+		tweenTo(lineCFrame, 22)
 	end
 
-	task.wait(0.5)
+	task.wait(0.15)
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
 
 	local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 	local effects = playerGui:WaitForChild("Effects")
-	local chargeBar = effects:WaitForChild("ChargeBar"):WaitForChild("Frame")
-	local bar = chargeBar:WaitForChild("BAR")
+	local chargeBarObj = effects:WaitForChild("ChargeBar")
+	local chargeFrame = chargeBarObj:WaitForChild("Frame")
+	local bar = chargeFrame:WaitForChild("BAR")
 
-	local startCharge = tick()
 	repeat
-		task.wait(0.05)
-		local currentScale = bar.Size.Y.Scale
-		if currentScale >= 0.95 then
-			break
-		end
-	until tick() - startCharge >= 1.5 or not stealEggEnabled
+		task.wait(0.01)
+	until bar.Size.Y.Scale >= 0.96 or not chargeBarObj.Visible or not chargeFrame.Visible or not stealEggEnabled
 
-	task.wait(0.1)
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-	task.wait(0.3)
+
+	repeat
+		task.wait(0.02)
+	until not chargeBarObj.Visible or not chargeFrame.Visible or not stealEggEnabled
 end
 
 local function getBestEgg()
@@ -302,7 +300,7 @@ local function stealBestEgg()
 	while stealEggEnabled do
 		if isPlayerInTrainingArea() then
 			jump()
-			task.wait(0.8)
+			task.wait(0.3)
 		end
 
 		chargePower()
@@ -311,9 +309,9 @@ local function stealBestEgg()
 
 		local prompt, targetPart = getBestEgg()
 		if prompt and targetPart then
-			tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 12)
+			tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 22)
 			
-			task.wait(0.5)
+			task.wait(0.2)
 			if fireproximityprompt then
 				fireproximityprompt(prompt)
 			else
@@ -321,17 +319,17 @@ local function stealBestEgg()
 				task.wait(0.05)
 				VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
 			end
-			task.wait(0.6)
+			task.wait(0.3)
 		else
-			task.wait(1)
+			task.wait(0.5)
 		end
 
 		local line = Workspace:FindFirstChild("Line")
 		if line then
-			tweenTo(line.CFrame * CFrame.new(0, 3, -18), 12)
+			tweenTo(line.CFrame * CFrame.new(0, 3, -18), 22)
 		end
 
-		task.wait(0.8)
+		task.wait(0.3)
 	end
 end
 
