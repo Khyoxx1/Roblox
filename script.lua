@@ -245,12 +245,14 @@ local function chargePower()
 	local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 	local effects = playerGui:WaitForChild("Effects")
 	local chargeBar = effects:WaitForChild("ChargeBar"):WaitForChild("Frame")
-	local bar = chargeBar:WaitForChild("Bar")
-	local top = chargeBar:WaitForChild("Levels"):WaitForChild("Top")
+	local bar = chargeBar:WaitForChild("BAR")
+	local top = chargeBar:WaitForChild("Levels"):WaitForChild("TOP")
 
 	repeat
-		task.wait(0.02)
-	until bar.AbsolutePosition.Y <= top.AbsolutePosition.Y or not stealEggEnabled
+		task.wait(0.01)
+		local barTopY = bar.AbsolutePosition.Y
+		local targetTopY = top.AbsolutePosition.Y + top.AbsoluteSize.Y
+	until barTopY <= targetTopY or not stealEggEnabled
 
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
 end
