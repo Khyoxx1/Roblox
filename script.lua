@@ -178,14 +178,16 @@ local function getMyPlot()
 end
 
 local isTweening = false
-local function tweenTo(targetCFrame, speedTime)
+local function tweenTo(targetCFrame, customTime)
 	local character = LocalPlayer.Character
 	if not character then return end
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 
 	isTweening = true
-	local tweenInfo = TweenInfo.new(speedTime or 0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local distance = (hrp.Position - targetCFrame.Position).Magnitude
+	local duration = customTime or math.clamp(distance / 28, 0.8, 6)
+	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
 	tween:Play()
 	tween.Completed:Wait()
@@ -208,7 +210,7 @@ local function tweenToTrainingArea()
 
 	local targetCFrame = placeholder.CFrame * CFrame.new(0, 3, 0)
 	if (hrp.Position - targetCFrame.Position).Magnitude > 4 then
-		tweenTo(targetCFrame, 0.4)
+		tweenTo(targetCFrame)
 	end
 end
 
@@ -236,10 +238,11 @@ end
 local function chargePower()
 	local line = Workspace:FindFirstChild("Line")
 	if line then
-		local lineCFrame = line.CFrame * CFrame.new(0, 3, 2)
-		tweenTo(lineCFrame, 0.5)
+		local lineCFrame = line.CFrame * CFrame.new(0, 3, 10)
+		tweenTo(lineCFrame)
 	end
 
+	task.wait(0.2)
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
 
 	local playerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -289,15 +292,22 @@ end
 
 local function stealBestEgg()
 	while stealEggEnabled do
+		if isPlayerInTrainingArea() then
+			jump()
+			task.wait(0.5)
+		end
+
 		chargePower()
 
-		task.wait(0.1)
+		if not stealEggEnabled then break end
+
+		task.wait(0.2)
 
 		local prompt, targetPart = getBestEgg()
 		if prompt and targetPart then
-			tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 0.5)
+			tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0))
 			
-			task.wait(0.1)
+			task.wait(0.3)
 			if fireproximityprompt then
 				fireproximityprompt(prompt)
 			else
@@ -305,14 +315,12 @@ local function stealBestEgg()
 				task.wait(0.05)
 				VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
 			end
-			task.wait(0.3)
+			task.wait(0.5)
 		end
 
 		local line = Workspace:FindFirstChild("Line")
 		if line then
-			tweenTo(line.CFrame * CFrame.new(0, 3, 4), 0.5)
-		else
-			tweenToTrainingArea()
+			tweenTo(line.CFrame * CFrame.new(0, 3, 10))
 		end
 
 		task.wait(0.5)
