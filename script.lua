@@ -3,23 +3,16 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- 1. Nazwa gracza w konsoli (Output)
-print("Uruchomiono skrypt dla gracza: " .. LocalPlayer.Name)
-
--- Stan przełącznika Auto Train
 local autoTrainEnabled = false
 
--- 2. Tworzenie ciemnego GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AutoTrainGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Główna ramka (Przesuwalna)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 180, 0, 46)
@@ -40,7 +33,6 @@ mainStroke.Thickness = 1.5
 mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 mainStroke.Parent = mainFrame
 
--- Napis "Auto Train"
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Name = "TitleLabel"
 titleLabel.Size = UDim2.new(1, -50, 1, 0)
@@ -53,7 +45,6 @@ titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = mainFrame
 
--- Checkbox Przycisk
 local checkboxButton = Instance.new("TextButton")
 checkboxButton.Name = "CheckboxButton"
 checkboxButton.Size = UDim2.new(0, 26, 0, 26)
@@ -83,7 +74,6 @@ checkmarkLabel.TextSize = 16
 checkmarkLabel.Font = Enum.Font.GothamBold
 checkmarkLabel.Parent = checkboxButton
 
--- === PRZESUWANIE GUI (DRAG & DROP) ===
 local dragging = false
 local dragStart = nil
 local startPos = nil
@@ -116,7 +106,6 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- === FUNKCJE PLOTU I TWEENOWANIA ===
 local function getMyPlot()
 	local plotsFolder = Workspace:FindFirstChild("Plots")
 	if not plotsFolder then return nil end
@@ -152,7 +141,6 @@ local function tweenToTrainingArea()
 
 	local targetCFrame = placeholder.CFrame * CFrame.new(0, 3, 0)
 	
-	-- Skrypt tweenuje gracza tylko jeśli oddalił się od punktu o więcej niż 4 ćwieki (studs)
 	if (hrp.Position - targetCFrame.Position).Magnitude > 4 then
 		isTweening = true
 		local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -164,44 +152,28 @@ local function tweenToTrainingArea()
 	end
 end
 
--- === SPRAWDZANIE CZY GRACZ JEST NA MIEJSCU W PĘTLI ===
-task.spawn(function()
-	while true do
-		task.wait(0.5)
-		if autoTrainEnabled then
-			tweenToTrainingArea()
-		end
-	end
-end)
+local function isPlayerInTrainingArea()
+	local myPlot = getMyPlot()
+	if not myPlot then return false end
 
--- === FUNKCJA SKOKU (SPACJA) ===
+	local placeholder = myPlot:FindFirstChild("TrainingAreaPlaceholder")
+	if not placeholder then return false end
+
+	local character = LocalPlayer.Character
+	if not character then return false end
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return false end
+
+	local distance = (hrp.Position - placeholder.Position).Magnitude
+	return distance <= 6
+end
+
 local function jump()
 	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
 	task.wait(0.05)
 	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
 end
 
--- === PRZEŁĄCZANIE AUTO TRAIN ===
-checkboxButton.MouseButton1Click:Connect(function()
-	autoTrainEnabled = not autoTrainEnabled
-	if autoTrainEnabled then
-		checkboxButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
-		checkboxStroke.Color = Color3.fromRGB(46, 204, 113)
-		checkmarkLabel.Text = "✓"
-		
-		-- Przenieś postać od razu na plot po włączeniu
-		tweenToTrainingArea()
-	else
-		checkboxButton.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
-		checkboxStroke.Color = Color3.fromRGB(80, 80, 95)
-		checkmarkLabel.Text = ""
-		
-		-- Po wyłączeniu wykonuje skok (Spacja)
-		jump()
-	end
-end)
-
--- 3. Pobieranie elementu x2Speed wg ścieżki
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 local speedEffect = playerGui:WaitForChild("SpeedEffect")
 local leftContainer = speedEffect:WaitForChild("LeftContainer")
@@ -211,7 +183,6 @@ local x2Speed = speed:WaitForChild("x2Speed")
 
 local lastPosition = x2Speed.Position
 
--- Funkcja symulująca kliknięcie w przycisk x2Speed
 local function clickAtObject(guiObject)
 	local centerPos = guiObject.AbsolutePosition + (guiObject.AbsoluteSize / 2)
 	VirtualInputManager:SendMouseButtonEvent(centerPos.X, centerPos.Y + 36, 0, true, game, 0)
@@ -219,27 +190,52 @@ local function clickAtObject(guiObject)
 	VirtualInputManager:SendMouseButtonEvent(centerPos.X, centerPos.Y + 36, 0, false, game, 0)
 end
 
--- Reakcja na zmianę pozycji ikony x2Speed
-local function onPositionChanged()
+local function tryClickX2Speed()
 	if not autoTrainEnabled then return end
 	
-	print("Obiekt x2Speed zmienił pozycję! Ustawianie postaci i klikanie...")
 	tweenToTrainingArea()
-	
-	task.wait(0.05)
-	clickAtObject(x2Speed)
+	task.wait(0.1)
+
+	if isPlayerInTrainingArea() then
+		clickAtObject(x2Speed)
+	end
 end
 
--- 4. Nasłuchiwanie zmian pozycji ikony x2Speed
+checkboxButton.MouseButton1Click:Connect(function()
+	autoTrainEnabled = not autoTrainEnabled
+	if autoTrainEnabled then
+		checkboxButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+		checkboxStroke.Color = Color3.fromRGB(46, 204, 113)
+		checkmarkLabel.Text = "✓"
+		tryClickX2Speed()
+	else
+		checkboxButton.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+		checkboxStroke.Color = Color3.fromRGB(80, 80, 95)
+		checkmarkLabel.Text = ""
+		jump()
+	end
+end)
+
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+		if autoTrainEnabled then
+			if not isPlayerInTrainingArea() then
+				tweenToTrainingArea()
+			end
+		end
+	end
+end)
+
 x2Speed:GetPropertyChangedSignal("Position"):Connect(function()
 	if x2Speed.Position ~= lastPosition then
 		lastPosition = x2Speed.Position
-		onPositionChanged()
+		tryClickX2Speed()
 	end
 end)
 
 x2Speed:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
 	if autoTrainEnabled then
-		onPositionChanged()
+		tryClickX2Speed()
 	end
 end)
