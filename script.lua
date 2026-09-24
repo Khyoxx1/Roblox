@@ -175,8 +175,8 @@ local function tweenTo(targetCFrame, speedStuds)
 
 	isTweening = true
 	local distance = (hrp.Position - targetCFrame.Position).Magnitude
-	local speed = speedStuds or 120
-	local duration = math.clamp(distance / speed, 0.05, 3)
+	local speed = speedStuds or 240
+	local duration = math.clamp(distance / speed, 0.03, 2)
 
 	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	currentTween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
@@ -201,7 +201,7 @@ local function tweenToTrainingArea()
 
 	local targetCFrame = placeholder.CFrame * CFrame.new(0, 3, 0)
 	if (hrp.Position - targetCFrame.Position).Magnitude > 4 then
-		tweenTo(targetCFrame, 120)
+		tweenTo(targetCFrame, 240)
 	end
 end
 
@@ -303,10 +303,10 @@ local function stealBestEgg()
 		local safeCFrame = getSafeZoneCFrame()
 
 		if safeCFrame then
-			tweenTo(safeCFrame, 120)
+			tweenTo(safeCFrame, 240)
 		elseif isPlayerInTrainingArea() then
 			jump()
-			task.wait(0.1)
+			task.wait(0.05)
 		end
 
 		if not stealEggEnabled then break end
@@ -317,29 +317,29 @@ local function stealBestEgg()
 
 		local prompt, targetPart = getBestEgg()
 		if prompt and targetPart then
-			tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 120)
+			tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 240)
 			
-			task.wait(0.05)
+			task.wait(0.03)
 			if fireproximityprompt then
 				fireproximityprompt(prompt)
 			else
 				VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-				task.wait(0.03)
+				task.wait(0.02)
 				VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
 			end
-			task.wait(0.05)
+			task.wait(0.03)
 		else
-			task.wait(0.1)
+			task.wait(0.05)
 		end
 
 		if not stealEggEnabled then break end
 
 		safeCFrame = getSafeZoneCFrame()
 		if safeCFrame then
-			tweenTo(safeCFrame, 120)
+			tweenTo(safeCFrame, 240)
 		end
 
-		task.wait(0.15)
+		task.wait(0.05)
 	end
 end
 
