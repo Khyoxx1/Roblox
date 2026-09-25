@@ -13,16 +13,16 @@ local autoTrainEnabled = false
 local stealEggEnabled = false
 
 local VoidTheme = {
-	Background = Color3.fromRGB(10, 8, 18),
-	Header = Color3.fromRGB(16, 12, 28),
-	Card = Color3.fromRGB(20, 16, 36),
-	CardHover = Color3.fromRGB(30, 22, 54),
-	ItemBg = Color3.fromRGB(26, 20, 46),
+	Background = Color3.fromRGB(12, 10, 20),
+	Header = Color3.fromRGB(18, 14, 30),
+	Card = Color3.fromRGB(22, 18, 38),
+	CardHover = Color3.fromRGB(34, 26, 58),
+	ItemBg = Color3.fromRGB(28, 22, 48),
 	Accent = Color3.fromRGB(150, 50, 255),
 	AccentGlow = Color3.fromRGB(200, 90, 255),
 	TextPrimary = Color3.fromRGB(245, 240, 255),
-	TextDark = Color3.fromRGB(160, 150, 190),
-	ToggleOff = Color3.fromRGB(32, 26, 50),
+	TextDark = Color3.fromRGB(170, 160, 200),
+	ToggleOff = Color3.fromRGB(34, 28, 52),
 	ToggleOffCircle = Color3.fromRGB(100, 90, 130)
 }
 
@@ -72,6 +72,9 @@ for _, r in ipairs(rarityList) do selectedRarities[r.id] = true end
 local selectedMutations = {}
 for _, m in ipairs(mutationList) do selectedMutations[m.id] = true end
 
+local existingGui = LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("VoidStealer_Pro")
+if existingGui then existingGui:Destroy() end
+
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "VoidStealer_Pro"
 screenGui.ResetOnSpawn = false
@@ -99,10 +102,10 @@ mainStroke.Parent = mainFrame
 
 task.spawn(function()
 	while screenGui and screenGui.Parent do
-		TweenService:Create(mainStroke, TweenInfo.new(1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Color = VoidTheme.AccentGlow}):Play()
-		task.wait(1.8)
-		TweenService:Create(mainStroke, TweenInfo.new(1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Color = VoidTheme.Accent}):Play()
-		task.wait(1.8)
+		TweenService:Create(mainStroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Color = VoidTheme.AccentGlow}):Play()
+		task.wait(1.5)
+		TweenService:Create(mainStroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Color = VoidTheme.Accent}):Play()
+		task.wait(1.5)
 	end
 end)
 
@@ -120,7 +123,7 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -50, 1, 0)
 titleLabel.Position = UDim2.new(0, 14, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "🔮 VOID HUB"
+titleLabel.Text = "VOID HUB"
 titleLabel.TextColor3 = VoidTheme.TextPrimary
 titleLabel.TextSize = 14
 titleLabel.Font = Enum.Font.GothamBold
@@ -132,7 +135,7 @@ minimizeBtn.Size = UDim2.new(0, 28, 0, 28)
 minimizeBtn.Position = UDim2.new(1, -34, 0.5, -14)
 minimizeBtn.BackgroundColor3 = VoidTheme.Card
 minimizeBtn.BorderSizePixel = 0
-minimizeBtn.Text = "−"
+minimizeBtn.Text = "-"
 minimizeBtn.TextColor3 = VoidTheme.TextPrimary
 minimizeBtn.Font = Enum.Font.GothamBold
 minimizeBtn.TextSize = 18
@@ -157,7 +160,7 @@ mainLayout.SortOrder = Enum.SortOrder.LayoutOrder
 mainLayout.Parent = scrollFrame
 
 local function updateScrollSize()
-	scrollFrame.CanvasSize = UDim2.new(0, 0, 0, mainLayout.AbsoluteContentSize.Y + 12)
+	scrollFrame.CanvasSize = UDim2.new(0, 0, 0, mainLayout.AbsoluteContentSize.Y + 16)
 end
 mainLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateScrollSize)
 
@@ -254,7 +257,7 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 	local headerBtn = Instance.new("TextButton")
 	headerBtn.Size = UDim2.new(1, 0, 0, 34)
 	headerBtn.BackgroundTransparency = 1
-	headerBtn.Text = "  ►  " .. titleText
+	headerBtn.Text = "  >  " .. titleText
 	headerBtn.TextColor3 = VoidTheme.TextDark
 	headerBtn.Font = Enum.Font.GothamBold
 	headerBtn.TextSize = 11
@@ -343,7 +346,7 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 		checkBtn.Position = UDim2.new(1, -22, 0.5, -8)
 		checkBtn.BackgroundColor3 = VoidTheme.Accent
 		checkBtn.BorderSizePixel = 0
-		checkBtn.Text = "✓"
+		checkBtn.Text = "v"
 		checkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 		checkBtn.Font = Enum.Font.GothamBold
 		checkBtn.TextSize = 10
@@ -357,7 +360,7 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 			selectionTable[item.id] = state
 			local color = state and VoidTheme.Accent or VoidTheme.ToggleOff
 			TweenService:Create(checkBtn, TweenInfo.new(0.15), {BackgroundColor3 = color}):Play()
-			checkBtn.Text = state and "✓" or ""
+			checkBtn.Text = state and "v" or ""
 		end
 
 		checkBtn.MouseButton1Click:Connect(function()
@@ -379,7 +382,7 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 	headerBtn.MouseButton1Click:Connect(function()
 		isExpanded = not isExpanded
 		local targetHeight = isExpanded and (38 + 30 + (#itemsList * 28)) or 34
-		headerBtn.Text = (isExpanded and "  ▼  " or "  ►  ") .. titleText
+		headerBtn.Text = (isExpanded and "  v  " or "  >  ") .. titleText
 		headerBtn.TextColor3 = isExpanded and VoidTheme.AccentGlow or VoidTheme.TextDark
 
 		if isExpanded then contentArea.Visible = true end
@@ -405,22 +408,20 @@ stealToggleSetter = createToggleRow(scrollFrame, "Auto Steal Eggs", 2, function(
 	stealEggEnabled = val
 	if stealEggEnabled then
 		task.spawn(function()
-			pcall(function()
-				local self = getfenv().stealBestEggFunc
-				if self then self() end
-			end)
+			local self = getfenv().stealBestEggFunc
+			if self then self() end
 		end)
 	end
 end)
 
-createAccordionSection(scrollFrame, "   ↳ Filter Rarities", rarityList, selectedRarities, 3)
-createAccordionSection(scrollFrame, "   ↳ Filter Mutations", mutationList, selectedMutations, 4)
+createAccordionSection(scrollFrame, "Filter Rarities", rarityList, selectedRarities, 3)
+createAccordionSection(scrollFrame, "Filter Mutations", mutationList, selectedMutations, 4)
 
 local isMinimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
 	isMinimized = not isMinimized
 	local targetSize = isMinimized and UDim2.new(0, 330, 0, 42) or UDim2.new(0, 330, 0, 380)
-	minimizeBtn.Text = isMinimized and "+" or "−"
+	minimizeBtn.Text = isMinimized and "+" or "-"
 	TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
 end)
 
@@ -480,8 +481,8 @@ local function tweenTo(targetCFrame, speedStuds)
 	if currentTween then currentTween:Cancel() end
 	isTweening = true
 	local distance = (hrp.Position - targetCFrame.Position).Magnitude
-	local speed = speedStuds or 260
-	local duration = math.clamp(distance / speed, 0.02, 1.2)
+	local speed = speedStuds or 280
+	local duration = math.clamp(distance / speed, 0.01, 1.0)
 
 	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	currentTween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
@@ -520,7 +521,7 @@ local function tweenToTrainingArea()
 
 	local targetCFrame = placeholder.CFrame * CFrame.new(0, 3, 0)
 	if (hrp.Position - targetCFrame.Position).Magnitude > 4 then
-		tweenTo(targetCFrame, 260)
+		tweenTo(targetCFrame, 280)
 	end
 end
 
@@ -543,20 +544,22 @@ local function jump()
 end
 
 local function equipSlot1()
-	pcall(function()
-		VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.One, false, game)
-		task.wait(0.05)
-		VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.One, false, game)
-	end)
+	local character = LocalPlayer.Character
+	if not character then return end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+
+	if backpack and humanoid then
+		local tools = backpack:GetChildren()
+		if #tools > 0 then
+			humanoid:EquipTool(tools[1])
+		end
+	end
 
 	pcall(function()
-		local character = LocalPlayer.Character
-		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-		local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
-		if humanoid and backpack then
-			local tools = backpack:GetChildren()
-			if #tools > 0 then humanoid:EquipTool(tools[1]) end
-		end
+		VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.One, false, game)
+		task.wait(0.03)
+		VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.One, false, game)
 	end)
 end
 
@@ -619,7 +622,7 @@ local function chargePower()
 
 	local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
 	local startTime = tick()
-	local maxHoldTime = 3.2
+	local maxHoldTime = 3.0
 
 	while stealEggEnabled and (tick() - startTime < maxHoldTime) do
 		task.wait(0.02)
@@ -632,7 +635,7 @@ local function chargePower()
 					local bar = frame:FindFirstChild("BAR") or frame:FindFirstChild("Bar")
 					if bar then
 						local fill = math.max(bar.Size.X.Scale, bar.Size.Y.Scale)
-						if fill >= 0.93 then break end
+						if fill >= 0.92 then break end
 					end
 				end
 			end
@@ -641,6 +644,19 @@ local function chargePower()
 
 	releaseLPM()
 	task.wait(0.05)
+end
+
+local function firePrompt(prompt)
+	if not prompt or not prompt.Parent then return end
+	if fireproximityprompt then
+		pcall(function() fireproximityprompt(prompt) end)
+	else
+		pcall(function()
+			if prompt.InputHoldBegan then prompt:InputHoldBegan() end
+			task.wait(prompt.HoldDuration or 0)
+			if prompt.InputHoldEnd then prompt:InputHoldEnd() end
+		end)
+	end
 end
 
 local function detectEggInfo(pppPart)
@@ -684,7 +700,7 @@ local function getSortedEggs()
 
 	local eggList = {}
 	for _, prompt in pairs(spawnedItems:GetDescendants()) do
-		if prompt:IsA("ProximityPrompt") and prompt.Name == "PickablePrompt" then
+		if prompt:IsA("ProximityPrompt") and (prompt.Name == "PickablePrompt" or prompt.Name:lower():find("pick")) then
 			local pppPart = prompt.Parent
 			if pppPart and pppPart:IsA("BasePart") then
 				local rarityObj, mutationObj = detectEggInfo(pppPart)
@@ -711,8 +727,8 @@ end
 local function waitSeconds(seconds)
 	local elapsed = 0
 	while stealEggEnabled and elapsed < seconds do
-		task.wait(0.08)
-		elapsed = elapsed + 0.08
+		task.wait(0.05)
+		elapsed = elapsed + 0.05
 	end
 end
 
@@ -720,7 +736,7 @@ local function stealBestEgg()
 	while stealEggEnabled do
 		local safeCFrame = getSafeZoneCFrame()
 		if safeCFrame then
-			tweenTo(safeCFrame, 260)
+			tweenTo(safeCFrame, 280)
 		elseif isPlayerInTrainingArea() then
 			jump()
 			task.wait(0.05)
@@ -751,16 +767,10 @@ local function stealBestEgg()
 				local targetPart = eggData.part
 
 				if prompt and targetPart and targetPart:IsDescendantOf(Workspace) then
-					tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 260)
+					tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 280)
 					task.wait(0.02)
 
-					if fireproximityprompt then
-						fireproximityprompt(prompt)
-					else
-						VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-						task.wait(0.02)
-						VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-					end
+					firePrompt(prompt)
 
 					local startCount = getCarriedEggsCount()
 					local waitPickup = tick()
@@ -772,7 +782,7 @@ local function stealBestEgg()
 							successPickup = true
 							break
 						end
-					until not targetPart:IsDescendantOf(Workspace) or (tick() - waitPickup > 0.4)
+					until not targetPart:IsDescendantOf(Workspace) or (tick() - waitPickup > 0.35)
 
 					if successPickup then
 						pickedAny = true
@@ -789,7 +799,7 @@ local function stealBestEgg()
 
 		safeCFrame = getSafeZoneCFrame()
 		if safeCFrame then
-			tweenTo(safeCFrame, 260)
+			tweenTo(safeCFrame, 280)
 		end
 
 		equipSlot1()
@@ -827,7 +837,7 @@ end
 
 task.spawn(function()
 	while true do
-		task.wait(0.4)
+		task.wait(0.3)
 		if autoTrainEnabled and not isTweening and not stealEggEnabled then
 			if not isPlayerInTrainingArea() then
 				tweenToTrainingArea()
