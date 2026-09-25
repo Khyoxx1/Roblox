@@ -250,6 +250,29 @@ local function jump()
 	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
 end
 
+-- WYBIERANIE BROŃ / SLOT 1
+local function equipSlot1()
+	-- 1. Naciśnięcie klawisza "1"
+	pcall(function()
+		VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.One, false, game)
+		task.wait(0.05)
+		VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.One, false, game)
+	end)
+
+	-- 2. Zapasowo: bezpośrednie założenie pierwszego narzędzia z Backpacka
+	pcall(function()
+		local character = LocalPlayer.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+		if humanoid and backpack then
+			local tools = backpack:GetChildren()
+			if #tools > 0 then
+				humanoid:EquipTool(tools[1])
+			end
+		end
+	end)
+end
+
 -- ILE JAJEK TRZYMAMY AKTUALNIE
 local function getCarriedEggsCount()
 	local character = LocalPlayer.Character
@@ -270,7 +293,7 @@ local function getCarriedEggsCount()
 	return count
 end
 
--- ODZYTWANIE DYNAMICZNEGO LIMITU MAX PICKUP
+-- ODCZYT LIMITU MAX PICKUP
 local function getMaxPickup()
 	local success, val = pcall(function()
 		local Modifiers = require(ReplicatedStorage:FindFirstChild("Modifiers"))
@@ -290,7 +313,7 @@ local function getMaxPickup()
 		return val2
 	end
 
-	return 5 -- Domyślny zapasowy limit
+	return 5
 end
 
 -- OBSŁUGA MYSZY I PASKI ŁADOWANIA
@@ -358,7 +381,7 @@ local function chargePower()
 	task.wait(0.04)
 end
 
--- POBIERANIE POSORTOWANEJ LISTY JAJEK OD NAJLEPSZEGO
+-- POSORTOWANE JAJKA
 local function getSortedEggs()
 	local spawnedItems = Workspace:FindFirstChild("SpawnedItems")
 	if not spawnedItems then return {} end
@@ -394,9 +417,19 @@ local function getSortedEggs()
 	return eggList
 end
 
--- PĘTLA KRADZIEŻY WIELU JAJEK
+-- BEZPIECZNE ODWAITOWANIE
+local function waitSeconds(seconds)
+	local elapsed = 0
+	while stealEggEnabled and elapsed < seconds do
+		task.wait(0.1)
+		elapsed = elapsed + 0.1
+	end
+end
+
+-- MAIN STEAL LOOP
 local function stealBestEgg()
 	while stealEggEnabled do
+		-- 1. Lot do Safe Zone
 		local safeCFrame = getSafeZoneCFrame()
 
 		if safeCFrame then
@@ -408,25 +441,32 @@ local function stealBestEgg()
 
 		if not stealEggEnabled then break end
 
-		-- Ładujemy siłę przed rozpoczęciem rajdu
+		-- 2. Wybieranie broni ze slotu 1
+		equipSlot1()
+
+		-- 3. Czekanie 3 sekund w Safe Zone przed kolejnym rajdem
+		waitSeconds(3)
+
+		if not stealEggEnabled then break end
+
+		-- 4. Ładowanie siły (LPM)
 		chargePower()
 
 		if not stealEggEnabled then break end
 
 		local maxCarry = getMaxPickup()
 
-		-- Pętla zbierania wielu jajek w jednym rajdzie
+		-- 5. Rajd po jajka
 		while stealEggEnabled do
 			local currentCarried = getCarriedEggsCount()
 			
-			-- Jeśli osiągnęliśmy limit plecaka, przerywamy zbieranie i uciekamy
 			if currentCarried >= maxCarry then
 				break
 			end
 
 			local sortedEggs = getSortedEggs()
 			if #sortedEggs == 0 then
-				break -- Brak więcej jajek na mapie
+				break
 			end
 
 			local pickedAny = false
@@ -438,7 +478,6 @@ local function stealBestEgg()
 				local targetPart = eggData.part
 
 				if prompt and targetPart and targetPart:IsDescendantOf(Workspace) then
-					-- Podlatujemy do kolejnego najlepszego jajka
 					tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 260)
 
 					task.wait(0.02)
@@ -450,7 +489,6 @@ local function stealBestEgg()
 						VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
 					end
 
-					-- Sprawdzamy czy liczba trzymanych jajek wzrosła
 					local startCount = getCarriedEggsCount()
 					local waitPickup = tick()
 					local successPickup = false
@@ -465,12 +503,11 @@ local function stealBestEgg()
 
 					if successPickup then
 						pickedAny = true
-						break -- Jajko zebrane! Szukamy następnego najlepszego
+						break
 					end
 				end
 			end
 
-			-- Jeśli próba zbierania nie przyniosła rezultatu (np. ktoś zabrał jajko), przerywamy pętlę
 			if not pickedAny then
 				break
 			end
@@ -480,7 +517,7 @@ local function stealBestEgg()
 
 		if not stealEggEnabled then break end
 
-		-- Powrót do Safe Zone po zebraniu kompletu jajek
+		-- Powrót do Safe Zone po nalocie
 		safeCFrame = getSafeZoneCFrame()
 		if safeCFrame then
 			tweenTo(safeCFrame, 260)
