@@ -175,7 +175,7 @@ local function tweenTo(targetCFrame, speedStuds)
 
 	isTweening = true
 	local distance = (hrp.Position - targetCFrame.Position).Magnitude
-	local speed = speedStuds or 220
+	local speed = speedStuds or 240
 	local duration = math.clamp(distance / speed, 0.02, 1.5)
 
 	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
@@ -220,7 +220,7 @@ local function tweenToTrainingArea()
 
 	local targetCFrame = placeholder.CFrame * CFrame.new(0, 3, 0)
 	if (hrp.Position - targetCFrame.Position).Magnitude > 4 then
-		tweenTo(targetCFrame, 220)
+		tweenTo(targetCFrame, 240)
 	end
 end
 
@@ -243,6 +243,22 @@ local function jump()
 	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
 	task.wait(0.03)
 	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+end
+
+local function isCarryingEgg()
+	local character = LocalPlayer.Character
+	if not character then return false end
+
+	for _, child in pairs(character:GetChildren()) do
+		if child:IsA("Model") or child:IsA("BasePart") or child:IsA("Folder") then
+			local lowerName = child.Name:lower()
+			if lowerName:find("egg") or child:FindFirstChild("PPP") or child:FindFirstChild("PlacedEggBillboard") then
+				return true
+			end
+		end
+	end
+
+	return false
 end
 
 local function chargePower()
@@ -314,7 +330,7 @@ local function stealBestEgg()
 		local safeCFrame = getSafeZoneCFrame()
 
 		if safeCFrame then
-			tweenTo(safeCFrame, 220)
+			tweenTo(safeCFrame, 240)
 		elseif isPlayerInTrainingArea() then
 			jump()
 			task.wait(0.05)
@@ -328,7 +344,7 @@ local function stealBestEgg()
 
 		local prompt, targetPart = getBestEgg()
 		if prompt and targetPart then
-			tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 220)
+			tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 240)
 			
 			task.wait(0.02)
 			if fireproximityprompt then
@@ -342,7 +358,7 @@ local function stealBestEgg()
 			local waitPickup = tick()
 			repeat
 				task.wait(0.01)
-			until not targetPart:IsDescendantOf(Workspace) or (tick() - waitPickup > 0.6)
+			until isCarryingEgg() or not targetPart:IsDescendantOf(Workspace) or (tick() - waitPickup > 0.5)
 		else
 			task.wait(0.05)
 		end
@@ -351,7 +367,7 @@ local function stealBestEgg()
 
 		safeCFrame = getSafeZoneCFrame()
 		if safeCFrame then
-			tweenTo(safeCFrame, 220)
+			tweenTo(safeCFrame, 240)
 		end
 
 		task.wait(0.05)
@@ -370,7 +386,7 @@ local lastPosition = x2Speed.Position
 local function clickAtObject(guiObject)
 	local centerPos = guiObject.AbsolutePosition + (guiObject.AbsoluteSize / 2)
 	VirtualInputManager:SendMouseButtonEvent(centerPos.X, centerPos.Y + 36, 0, true, game, 0)
-	task.wait(0.03)
+	task.wait(0.04)
 	VirtualInputManager:SendMouseButtonEvent(centerPos.X, centerPos.Y + 36, 0, false, game, 0)
 end
 
@@ -378,7 +394,7 @@ local function tryClickX2Speed()
 	if not autoTrainEnabled then return end
 	
 	tweenToTrainingArea()
-	task.wait(0.05)
+	task.wait(0.08)
 
 	if isPlayerInTrainingArea() then
 		clickAtObject(x2Speed)
