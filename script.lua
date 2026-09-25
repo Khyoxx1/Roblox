@@ -175,8 +175,8 @@ local function tweenTo(targetCFrame, speedStuds)
 
 	isTweening = true
 	local distance = (hrp.Position - targetCFrame.Position).Magnitude
-	local speed = speedStuds or 240
-	local duration = math.clamp(distance / speed, 0.02, 1.5)
+	local speed = speedStuds or 260
+	local duration = math.clamp(distance / speed, 0.02, 1.2)
 
 	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	currentTween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
@@ -220,7 +220,7 @@ local function tweenToTrainingArea()
 
 	local targetCFrame = placeholder.CFrame * CFrame.new(0, 3, 0)
 	if (hrp.Position - targetCFrame.Position).Magnitude > 4 then
-		tweenTo(targetCFrame, 240)
+		tweenTo(targetCFrame, 260)
 	end
 end
 
@@ -250,6 +250,9 @@ local function isCarryingEgg()
 	if not character then return false end
 
 	for _, child in pairs(character:GetChildren()) do
+		if child:GetAttribute("OwnerId") == LocalPlayer.UserId or child:HasTag("Pickable") then
+			return true
+		end
 		if child:IsA("Model") or child:IsA("BasePart") or child:IsA("Folder") then
 			local lowerName = child.Name:lower()
 			if lowerName:find("egg") or child:FindFirstChild("PPP") or child:FindFirstChild("PlacedEggBillboard") then
@@ -262,29 +265,17 @@ local function isCarryingEgg()
 end
 
 local function chargePower()
-	local playerGui = LocalPlayer:WaitForChild("PlayerGui")
-	local effects = playerGui:FindFirstChild("Effects")
-
-	local waitForBar = tick()
-	repeat
-		task.wait(0.02)
-		if effects then
-			local cb = effects:FindFirstChild("ChargeBar")
-			if cb and cb.Visible then
-				local frame = cb:FindFirstChild("Frame")
-				if frame and frame.Visible then
-					break
-				end
-			end
-		end
-	until not stealEggEnabled or (tick() - waitForBar > 8)
-
 	if not stealEggEnabled then return end
 
+	-- Od razu wciskamy i trzymamy LPM
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
 
+	local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+	local effects = playerGui and playerGui:FindFirstChild("Effects")
 	local startTime = tick()
-	while stealEggEnabled and (tick() - startTime < 3) do
+
+	-- Czekamy na pełne naładowanie paska
+	while stealEggEnabled and (tick() - startTime < 3.2) do
 		task.wait(0.01)
 		if effects then
 			local chargeBar = effects:FindFirstChild("ChargeBar")
@@ -292,20 +283,17 @@ local function chargePower()
 				local frame = chargeBar:FindFirstChild("Frame")
 				if frame and frame.Visible then
 					local bar = frame:FindFirstChild("BAR")
-					if bar and bar.Size.Y.Scale >= 0.95 then
+					if bar and (bar.Size.Y.Scale >= 0.93 or bar.Size.X.Scale >= 0.93) then
 						break
 					end
-				else
-					break
 				end
-			else
-				break
 			end
 		end
 	end
 
+	-- Zwalniamy LPM (puczczenie ładowania)
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-	task.wait(0.02)
+	task.wait(0.03)
 end
 
 local function getBestEgg()
@@ -346,7 +334,7 @@ local function stealBestEgg()
 		local safeCFrame = getSafeZoneCFrame()
 
 		if safeCFrame then
-			tweenTo(safeCFrame, 240)
+			tweenTo(safeCFrame, 260)
 		elseif isPlayerInTrainingArea() then
 			jump()
 			task.wait(0.05)
@@ -360,7 +348,7 @@ local function stealBestEgg()
 
 		local prompt, targetPart = getBestEgg()
 		if prompt and targetPart then
-			tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 240)
+			tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 260)
 			
 			task.wait(0.02)
 			if fireproximityprompt then
@@ -375,16 +363,18 @@ local function stealBestEgg()
 			repeat
 				task.wait(0.01)
 			until isCarryingEgg() or not targetPart:IsDescendantOf(Workspace) or (tick() - waitPickup > 0.5)
+		else
+			task.wait(0.05)
 		end
 
 		if not stealEggEnabled then break end
 
 		safeCFrame = getSafeZoneCFrame()
 		if safeCFrame then
-			tweenTo(safeCFrame, 240)
+			tweenTo(safeCFrame, 260)
 		end
 
-		task.wait(0.2)
+		task.wait(0.1)
 	end
 end
 
