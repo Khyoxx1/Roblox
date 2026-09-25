@@ -62,14 +62,14 @@ for _, m in ipairs(mutationList) do
 end
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "EggStealerGUI_V2"
+screenGui.Name = "EggStealerGUI_V4"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 320, 0, 380)
-mainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
+mainFrame.Size = UDim2.new(0, 330, 0, 360)
+mainFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(18, 20, 28)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
@@ -87,7 +87,7 @@ mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 mainStroke.Parent = mainFrame
 
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 36)
+titleBar.Size = UDim2.new(1, 0, 0, 38)
 titleBar.BackgroundColor3 = Color3.fromRGB(26, 28, 40)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
@@ -122,92 +122,30 @@ local minCorner = Instance.new("UICorner")
 minCorner.CornerRadius = UDim.new(0, 6)
 minCorner.Parent = minimizeBtn
 
-local contentFrame = Instance.new("Frame")
-contentFrame.Size = UDim2.new(1, 0, 1, -36)
-contentFrame.Position = UDim2.new(0, 0, 0, 36)
-contentFrame.BackgroundTransparency = 1
-contentFrame.Parent = mainFrame
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -16, 1, -48)
+scrollFrame.Position = UDim2.new(0, 8, 0, 44)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 4
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(110, 86, 207)
+scrollFrame.Parent = mainFrame
 
-local tabBar = Instance.new("Frame")
-tabBar.Size = UDim2.new(1, -20, 0, 30)
-tabBar.Position = UDim2.new(0, 10, 0, 8)
-tabBar.BackgroundColor3 = Color3.fromRGB(24, 26, 36)
-tabBar.BorderSizePixel = 0
-tabBar.Parent = contentFrame
+local mainLayout = Instance.new("UIListLayout")
+mainLayout.Padding = UDim.new(0, 8)
+mainLayout.SortOrder = Enum.SortOrder.LayoutOrder
+mainLayout.Parent = scrollFrame
 
-local tabBarCorner = Instance.new("UICorner")
-tabBarCorner.CornerRadius = UDim.new(0, 8)
-tabBarCorner.Parent = tabBar
+mainLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	scrollFrame.CanvasSize = UDim2.new(0, 0, 0, mainLayout.AbsoluteContentSize.Y + 12)
+end)
 
-local function createTabBtn(text, posX, widthScale)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(widthScale, -4, 1, -4)
-	btn.Position = UDim2.new(posX, 2, 0, 2)
-	btn.BackgroundColor3 = Color3.fromRGB(32, 35, 50)
-	btn.BorderSizePixel = 0
-	btn.Text = text
-	btn.TextColor3 = Color3.fromRGB(180, 180, 200)
-	btn.Font = Enum.Font.GothamMedium
-	btn.TextSize = 11
-	btn.Parent = tabBar
-
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 6)
-	corner.Parent = btn
-
-	return btn
-end
-
-local tabMainBtn = createTabBtn("Główne", 0, 0.33)
-local tabRarityBtn = createTabBtn("Rzadkości", 0.33, 0.33)
-local tabMutationBtn = createTabBtn("Mutacje", 0.66, 0.34)
-
-local pagesFolder = Instance.new("Folder")
-pagesFolder.Name = "Pages"
-pagesFolder.Parent = contentFrame
-
-local function createPage()
-	local page = Instance.new("Frame")
-	page.Size = UDim2.new(1, -20, 1, -52)
-	page.Position = UDim2.new(0, 10, 0, 44)
-	page.BackgroundTransparency = 1
-	page.Visible = false
-	page.Parent = pagesFolder
-	return page
-end
-
-local pageMain = createPage()
-local pageRarity = createPage()
-local pageMutation = createPage()
-
-pageMain.Visible = true
-tabMainBtn.BackgroundColor3 = Color3.fromRGB(110, 86, 207)
-tabMainBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-local function switchTab(activeBtn, activePage)
-	for _, btn in ipairs({tabMainBtn, tabRarityBtn, tabMutationBtn}) do
-		btn.BackgroundColor3 = Color3.fromRGB(32, 35, 50)
-		btn.TextColor3 = Color3.fromRGB(180, 180, 200)
-	end
-	for _, page in ipairs(pagesFolder:GetChildren()) do
-		page.Visible = false
-	end
-
-	activeBtn.BackgroundColor3 = Color3.fromRGB(110, 86, 207)
-	activeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	activePage.Visible = true
-end
-
-tabMainBtn.MouseButton1Click:Connect(function() switchTab(tabMainBtn, pageMain) end)
-tabRarityBtn.MouseButton1Click:Connect(function() switchTab(tabRarityBtn, pageRarity) end)
-tabMutationBtn.MouseButton1Click:Connect(function() switchTab(tabMutationBtn, pageMutation) end)
-
-local function createToggleRow(parent, text, posY, callback)
+local function createToggleRow(parent, text, layoutOrder, callback)
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, 0, 0, 36)
-	frame.Position = UDim2.new(0, 0, 0, posY)
 	frame.BackgroundColor3 = Color3.fromRGB(25, 27, 38)
 	frame.BorderSizePixel = 0
+	frame.LayoutOrder = layoutOrder
 	frame.Parent = parent
 
 	local corner = Instance.new("UICorner")
@@ -271,42 +209,46 @@ local function createToggleRow(parent, text, posY, callback)
 	return setToggle
 end
 
-local infoCard = Instance.new("Frame")
-infoCard.Size = UDim2.new(1, 0, 0, 120)
-infoCard.Position = UDim2.new(0, 0, 0, 106)
-infoCard.BackgroundColor3 = Color3.fromRGB(25, 27, 38)
-infoCard.BorderSizePixel = 0
-infoCard.Parent = pageMain
+local function createAccordionSection(parent, titleText, itemsList, selectionTable, layoutOrder)
+	local container = Instance.new("Frame")
+	container.Size = UDim2.new(1, 0, 0, 34)
+	container.BackgroundColor3 = Color3.fromRGB(25, 27, 38)
+	container.BorderSizePixel = 0
+	container.ClipsDescendants = true
+	container.LayoutOrder = layoutOrder
+	container.Parent = parent
 
-local infoCorner = Instance.new("UICorner")
-infoCorner.CornerRadius = UDim.new(0, 8)
-infoCorner.Parent = infoCard
+	local containerCorner = Instance.new("UICorner")
+	containerCorner.CornerRadius = UDim.new(0, 8)
+	containerCorner.Parent = container
 
-local infoText = Instance.new("TextLabel")
-infoText.Size = UDim2.new(1, -20, 1, -20)
-infoText.Position = UDim2.new(0, 10, 0, 10)
-infoText.BackgroundTransparency = 1
-infoText.Text = "• Skrypt ląduje w Safe Zone\n• Wybiera broń pod [1]\n• Czeka 3 sekundy przed rajdem\n• Filtruje wybrane Rzadkości i Mutacje"
-infoText.TextColor3 = Color3.fromRGB(170, 175, 195)
-infoText.TextSize = 11
-infoText.Font = Enum.Font.Gotham
-infoText.TextYAlignment = Enum.TextYAlignment.Top
-infoText.TextXAlignment = Enum.TextXAlignment.Left
-infoText.Parent = infoCard
+	local headerBtn = Instance.new("TextButton")
+	headerBtn.Size = UDim2.new(1, 0, 0, 34)
+	headerBtn.BackgroundTransparency = 1
+	headerBtn.Text = "  ►  " .. titleText
+	headerBtn.TextColor3 = Color3.fromRGB(200, 200, 225)
+	headerBtn.Font = Enum.Font.GothamBold
+	headerBtn.TextSize = 11
+	headerBtn.TextXAlignment = Enum.TextXAlignment.Left
+	headerBtn.Parent = container
 
-local function createFilterPage(page, itemsList, selectionTable)
+	local contentArea = Instance.new("Frame")
+	contentArea.Size = UDim2.new(1, -16, 0, 0)
+	contentArea.Position = UDim2.new(0, 8, 0, 38)
+	contentArea.BackgroundTransparency = 1
+	contentArea.Visible = false
+	contentArea.Parent = container
+
 	local ctrlFrame = Instance.new("Frame")
-	ctrlFrame.Size = UDim2.new(1, 0, 0, 26)
-	ctrlFrame.Position = UDim2.new(0, 0, 0, 0)
+	ctrlFrame.Size = UDim2.new(1, 0, 0, 24)
 	ctrlFrame.BackgroundTransparency = 1
-	ctrlFrame.Parent = page
+	ctrlFrame.Parent = contentArea
 
 	local selectAllBtn = Instance.new("TextButton")
 	selectAllBtn.Size = UDim2.new(0.48, 0, 1, 0)
-	selectAllBtn.Position = UDim2.new(0, 0, 0, 0)
 	selectAllBtn.BackgroundColor3 = Color3.fromRGB(38, 42, 60)
 	selectAllBtn.BorderSizePixel = 0
-	selectAllBtn.Text = "Zaznacz wsz."
+	selectAllBtn.Text = "Select All"
 	selectAllBtn.TextColor3 = Color3.fromRGB(220, 220, 240)
 	selectAllBtn.Font = Enum.Font.GothamMedium
 	selectAllBtn.TextSize = 10
@@ -321,7 +263,7 @@ local function createFilterPage(page, itemsList, selectionTable)
 	deselectAllBtn.Position = UDim2.new(0.52, 0, 0, 0)
 	deselectAllBtn.BackgroundColor3 = Color3.fromRGB(38, 42, 60)
 	deselectAllBtn.BorderSizePixel = 0
-	deselectAllBtn.Text = "Odznacz wsz."
+	deselectAllBtn.Text = "Deselect All"
 	deselectAllBtn.TextColor3 = Color3.fromRGB(220, 220, 240)
 	deselectAllBtn.Font = Enum.Font.GothamMedium
 	deselectAllBtn.TextSize = 10
@@ -331,36 +273,33 @@ local function createFilterPage(page, itemsList, selectionTable)
 	deselectCorner.CornerRadius = UDim.new(0, 6)
 	deselectCorner.Parent = deselectAllBtn
 
-	local scroll = Instance.new("ScrollingFrame")
-	scroll.Size = UDim2.new(1, 0, 1, -32)
-	scroll.Position = UDim2.new(0, 0, 0, 32)
-	scroll.BackgroundTransparency = 1
-	scroll.BorderSizePixel = 0
-	scroll.ScrollBarThickness = 4
-	scroll.ScrollBarImageColor3 = Color3.fromRGB(110, 86, 207)
-	scroll.Parent = page
+	local itemsContainer = Instance.new("Frame")
+	itemsContainer.Size = UDim2.new(1, 0, 0, #itemsList * 30)
+	itemsContainer.Position = UDim2.new(0, 0, 0, 30)
+	itemsContainer.BackgroundTransparency = 1
+	itemsContainer.Parent = contentArea
 
-	local listLayout = Instance.new("UIListLayout")
-	listLayout.Padding = UDim.new(0, 5)
-	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	listLayout.Parent = scroll
+	local itemsLayout = Instance.new("UIListLayout")
+	itemsLayout.Padding = UDim.new(0, 4)
+	itemsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	itemsLayout.Parent = itemsContainer
 
 	local toggleSetters = {}
 
 	for idx, item in ipairs(itemsList) do
 		local row = Instance.new("Frame")
-		row.Size = UDim2.new(1, -8, 0, 28)
-		row.BackgroundColor3 = Color3.fromRGB(25, 27, 38)
+		row.Size = UDim2.new(1, 0, 0, 26)
+		row.BackgroundColor3 = Color3.fromRGB(32, 35, 50)
 		row.BorderSizePixel = 0
 		row.LayoutOrder = idx
-		row.Parent = scroll
+		row.Parent = itemsContainer
 
 		local rowCorner = Instance.new("UICorner")
 		rowCorner.CornerRadius = UDim.new(0, 6)
 		rowCorner.Parent = row
 
 		local label = Instance.new("TextLabel")
-		label.Size = UDim2.new(1, -40, 1, 0)
+		label.Size = UDim2.new(1, -36, 1, 0)
 		label.Position = UDim2.new(0, 10, 0, 0)
 		label.BackgroundTransparency = 1
 		label.Text = item.name
@@ -371,14 +310,14 @@ local function createFilterPage(page, itemsList, selectionTable)
 		label.Parent = row
 
 		local checkBtn = Instance.new("TextButton")
-		checkBtn.Size = UDim2.new(0, 20, 0, 20)
-		checkBtn.Position = UDim2.new(1, -26, 0.5, -10)
+		checkBtn.Size = UDim2.new(0, 18, 0, 18)
+		checkBtn.Position = UDim2.new(1, -24, 0.5, -9)
 		checkBtn.BackgroundColor3 = Color3.fromRGB(110, 86, 207)
 		checkBtn.BorderSizePixel = 0
 		checkBtn.Text = "✓"
 		checkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 		checkBtn.Font = Enum.Font.GothamBold
-		checkBtn.TextSize = 12
+		checkBtn.TextSize = 11
 		checkBtn.Parent = row
 
 		local checkCorner = Instance.new("UICorner")
@@ -410,20 +349,45 @@ local function createFilterPage(page, itemsList, selectionTable)
 		end
 	end)
 
-	scroll.CanvasSize = UDim2.new(0, 0, 0, (#itemsList * 33))
+	local isExpanded = false
+	headerBtn.MouseButton1Click:Connect(function()
+		isExpanded = not isExpanded
+		if isExpanded then
+			headerBtn.Text = "  ▼  " .. titleText
+			contentArea.Visible = true
+			local totalHeight = 38 + 30 + (#itemsList * 30)
+			contentArea.Size = UDim2.new(1, -16, 0, 30 + (#itemsList * 30))
+			container.Size = UDim2.new(1, 0, 0, totalHeight)
+		else
+			headerBtn.Text = "  ►  " .. titleText
+			contentArea.Visible = false
+			container.Size = UDim2.new(1, 0, 0, 34)
+		end
+	end)
 end
 
-createFilterPage(pageRarity, rarityList, selectedRarities)
-createFilterPage(pageMutation, mutationList, selectedMutations)
+local setTrainToggle
+local setStealToggle
+
+setTrainToggle = createToggleRow(scrollFrame, "Auto Train (x2 Speed)", 1, function(val)
+	autoTrainEnabled = val
+end)
+
+setStealToggle = createToggleRow(scrollFrame, "Auto Steal Eggs", 2, function(val)
+	stealEggEnabled = val
+end)
+
+createAccordionSection(scrollFrame, "   ↳ Filter Rarities", rarityList, selectedRarities, 3)
+createAccordionSection(scrollFrame, "   ↳ Filter Mutations", mutationList, selectedMutations, 4)
 
 local isMinimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
 	isMinimized = not isMinimized
 	if isMinimized then
-		mainFrame:TweenSize(UDim2.new(0, 320, 0, 36), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
+		mainFrame:TweenSize(UDim2.new(0, 330, 0, 38), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
 		minimizeBtn.Text = "+"
 	else
-		mainFrame:TweenSize(UDim2.new(0, 320, 0, 380), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
+		mainFrame:TweenSize(UDim2.new(0, 330, 0, 360), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
 		minimizeBtn.Text = "-"
 	end
 end)
@@ -636,7 +600,7 @@ local function chargePower()
 	local maxHoldTime = 3.2
 
 	while stealEggEnabled and (tick() - startTime < maxHoldTime) do
-		task.wait(0.01)
+		task.wait(0.02)
 		local effects = playerGui and playerGui:FindFirstChild("Effects")
 		if effects then
 			local chargeBar = effects:FindFirstChild("ChargeBar")
@@ -654,7 +618,7 @@ local function chargePower()
 	end
 
 	releaseLPM()
-	task.wait(0.04)
+	task.wait(0.05)
 end
 
 local function detectEggInfo(pppPart)
@@ -761,7 +725,6 @@ local function stealBestEgg()
 
 		if not stealEggEnabled then break end
 
-		equipSlot1()
 		waitSeconds(3)
 
 		if not stealEggEnabled then break end
@@ -829,6 +792,8 @@ local function stealBestEgg()
 			tweenTo(safeCFrame, 260)
 		end
 
+		equipSlot1()
+
 		task.wait(0.1)
 	end
 
@@ -860,7 +825,7 @@ local function tryClickX2Speed()
 	end
 end
 
-setTrainToggle = createToggleRow(pageMain, "Auto Train (x2 Speed)", 10, function(val)
+setTrainToggle = createToggleRow(scrollFrame, "Auto Train (x2 Speed)", 1, function(val)
 	autoTrainEnabled = val
 	if autoTrainEnabled then
 		tryClickX2Speed()
@@ -869,7 +834,7 @@ setTrainToggle = createToggleRow(pageMain, "Auto Train (x2 Speed)", 10, function
 	end
 end)
 
-setStealToggle = createToggleRow(pageMain, "Steal Egg (Auto Farm)", 56, function(val)
+setStealToggle = createToggleRow(scrollFrame, "Auto Steal Eggs", 2, function(val)
 	stealEggEnabled = val
 	if stealEggEnabled then
 		task.spawn(stealBestEgg)
