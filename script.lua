@@ -622,20 +622,24 @@ local function chargePower()
 
 	local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
 	local startTime = tick()
-	local maxHoldTime = 3.0
+	local maxHoldTime = 3.5
 
 	while stealEggEnabled and (tick() - startTime < maxHoldTime) do
-		task.wait(0.02)
+		task.wait(0.01)
 		local effects = playerGui and playerGui:FindFirstChild("Effects")
 		if effects then
 			local chargeBar = effects:FindFirstChild("ChargeBar")
 			if chargeBar and chargeBar.Visible then
 				local frame = chargeBar:FindFirstChild("Frame")
 				if frame then
-					local bar = frame:FindFirstChild("BAR") or frame:FindFirstChild("Bar")
+					local bar = frame:FindFirstChild("BAR") or frame:FindFirstChild("Bar") or frame:FindFirstChild("Fill")
 					if bar then
-						local fill = math.max(bar.Size.X.Scale, bar.Size.Y.Scale)
-						if fill >= 0.92 then break end
+						local fillX = (frame.AbsoluteSize.X > 0) and (bar.AbsoluteSize.X / frame.AbsoluteSize.X) or bar.Size.X.Scale
+						local fillY = (frame.AbsoluteSize.Y > 0) and (bar.AbsoluteSize.Y / frame.AbsoluteSize.Y) or bar.Size.Y.Scale
+						local fill = math.min(fillX, fillY)
+						if fill >= 0.94 then
+							break
+						end
 					end
 				end
 			end
@@ -643,7 +647,6 @@ local function chargePower()
 	end
 
 	releaseLPM()
-	task.wait(0.05)
 end
 
 local function firePrompt(prompt)
