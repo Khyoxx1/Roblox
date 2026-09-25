@@ -1,8 +1,10 @@
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local VirtualUser = game:GetService("VirtualUser")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -20,6 +22,7 @@ local rarityWeights = {
 	rainbow = 18, animatedrainbow = 22
 }
 
+-- UI Setup
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AutoTrainGui"
 screenGui.ResetOnSpawn = false
@@ -110,6 +113,7 @@ end
 local trainBtn, trainCircle, trainStroke = createToggleRow("Auto Train", 38)
 local stealBtn, stealCircle, stealStroke = createToggleRow("Steal Egg", 72)
 
+-- Dragging GUI
 local dragging = false
 local dragStart = nil
 local startPos = nil
@@ -142,6 +146,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
+-- Core Functions
 local function getMyPlot()
 	local plotsFolder = Workspace:FindFirstChild("Plots")
 	if not plotsFolder then return nil end
@@ -245,64 +250,120 @@ local function jump()
 	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
 end
 
-local function isCarryingEgg()
+-- ILE JAJEK TRZYMAMY AKTUALNIE
+local function getCarriedEggsCount()
 	local character = LocalPlayer.Character
-	if not character then return false end
+	if not character then return 0 end
 
+	local count = 0
 	for _, child in pairs(character:GetChildren()) do
 		if child:GetAttribute("OwnerId") == LocalPlayer.UserId or child:HasTag("Pickable") then
-			return true
-		end
-		if child:IsA("Model") or child:IsA("BasePart") or child:IsA("Folder") then
+			count = count + 1
+		elseif child:IsA("Model") or child:IsA("BasePart") or child:IsA("Folder") then
 			local lowerName = child.Name:lower()
 			if lowerName:find("egg") or child:FindFirstChild("PPP") or child:FindFirstChild("PlacedEggBillboard") then
-				return true
+				count = count + 1
 			end
 		end
 	end
 
-	return false
+	return count
+end
+
+-- ODZYTWANIE DYNAMICZNEGO LIMITU MAX PICKUP
+local function getMaxPickup()
+	local success, val = pcall(function()
+		local Modifiers = require(ReplicatedStorage:FindFirstChild("Modifiers"))
+		return Modifiers.Get(LocalPlayer, "MaxPickup")
+	end)
+	if success and type(val) == "number" and val > 0 then
+		return val
+	end
+
+	local success2, val2 = pcall(function()
+		local Knit = require(ReplicatedStorage.Packages.Knit)
+		local ReplicaController = Knit.GetController("ReplicaController")
+		local data = ReplicaController:GetPlayerData(LocalPlayer)
+		return data.Upgrades and data.Upgrades.Carry
+	end)
+	if success2 and type(val2) == "number" and val2 > 0 then
+		return val2
+	end
+
+	return 5 -- Domyślny zapasowy limit
+end
+
+-- OBSŁUGA MYSZY I PASKI ŁADOWANIA
+local function pressLPM()
+	local camera = Workspace.CurrentCamera
+	local viewport = camera and camera.ViewportSize or Vector2.new(800, 600)
+	local centerX = viewport.X / 2
+	local centerY = viewport.Y / 2
+
+	if mouse1down then pcall(mouse1down) end
+	pcall(function()
+		VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
+	end)
+	pcall(function()
+		VirtualUser:Button1Down(Vector2.new(centerX, centerY))
+	end)
+end
+
+local function releaseLPM()
+	local camera = Workspace.CurrentCamera
+	local viewport = camera and camera.ViewportSize or Vector2.new(800, 600)
+	local centerX = viewport.X / 2
+	local centerY = viewport.Y / 2
+
+	if mouse1up then pcall(mouse1up) end
+	pcall(function()
+		VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
+	end)
+	pcall(function()
+		VirtualUser:Button1Up(Vector2.new(centerX, centerY))
+	end)
 end
 
 local function chargePower()
 	if not stealEggEnabled then return end
 
-	-- Od razu wciskamy i trzymamy LPM
-	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+	pressLPM()
 
 	local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-	local effects = playerGui and playerGui:FindFirstChild("Effects")
 	local startTime = tick()
+	local maxHoldTime = 3.2
 
-	-- Czekamy na pełne naładowanie paska
-	while stealEggEnabled and (tick() - startTime < 3.2) do
+	while stealEggEnabled and (tick() - startTime < maxHoldTime) do
 		task.wait(0.01)
+
+		local effects = playerGui and playerGui:FindFirstChild("Effects")
 		if effects then
 			local chargeBar = effects:FindFirstChild("ChargeBar")
 			if chargeBar and chargeBar.Visible then
 				local frame = chargeBar:FindFirstChild("Frame")
-				if frame and frame.Visible then
-					local bar = frame:FindFirstChild("BAR")
-					if bar and (bar.Size.Y.Scale >= 0.93 or bar.Size.X.Scale >= 0.93) then
-						break
+				if frame then
+					local bar = frame:FindFirstChild("BAR") or frame:FindFirstChild("Bar")
+					if bar then
+						local fill = math.max(bar.Size.X.Scale, bar.Size.Y.Scale)
+						if fill >= 0.92 then
+							break
+						end
 					end
 				end
 			end
 		end
 	end
 
-	-- Zwalniamy LPM (puczczenie ładowania)
-	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-	task.wait(0.03)
+	releaseLPM()
+	task.wait(0.04)
 end
 
-local function getBestEgg()
+-- POBIERANIE POSORTOWANEJ LISTY JAJEK OD NAJLEPSZEGO
+local function getSortedEggs()
 	local spawnedItems = Workspace:FindFirstChild("SpawnedItems")
-	if not spawnedItems then return nil, nil end
+	if not spawnedItems then return {} end
 
-	local bestPrompt = nil
-	local bestPart = nil
-	local highestScore = -1
+	local eggList = {}
 
 	for _, prompt in pairs(spawnedItems:GetDescendants()) do
 		if prompt:IsA("ProximityPrompt") and prompt.Name == "PickablePrompt" then
@@ -315,20 +376,25 @@ local function getBestEgg()
 						local rarityText = rarityLabel.Text:lower()
 						local score = rarityWeights[rarityText] or 1
 
-						if score > highestScore then
-							highestScore = score
-							bestPrompt = prompt
-							bestPart = pppPart
-						end
+						table.insert(eggList, {
+							prompt = prompt,
+							part = pppPart,
+							score = score
+						})
 					end
 				end
 			end
 		end
 	end
 
-	return bestPrompt, bestPart
+	table.sort(eggList, function(a, b)
+		return a.score > b.score
+	end)
+
+	return eggList
 end
 
+-- PĘTLA KRADZIEŻY WIELU JAJEK
 local function stealBestEgg()
 	while stealEggEnabled do
 		local safeCFrame = getSafeZoneCFrame()
@@ -342,33 +408,79 @@ local function stealBestEgg()
 
 		if not stealEggEnabled then break end
 
+		-- Ładujemy siłę przed rozpoczęciem rajdu
 		chargePower()
 
 		if not stealEggEnabled then break end
 
-		local prompt, targetPart = getBestEgg()
-		if prompt and targetPart then
-			tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 260)
+		local maxCarry = getMaxPickup()
+
+		-- Pętla zbierania wielu jajek w jednym rajdzie
+		while stealEggEnabled do
+			local currentCarried = getCarriedEggsCount()
 			
-			task.wait(0.02)
-			if fireproximityprompt then
-				fireproximityprompt(prompt)
-			else
-				VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-				task.wait(0.02)
-				VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+			-- Jeśli osiągnęliśmy limit plecaka, przerywamy zbieranie i uciekamy
+			if currentCarried >= maxCarry then
+				break
 			end
-			
-			local waitPickup = tick()
-			repeat
-				task.wait(0.01)
-			until isCarryingEgg() or not targetPart:IsDescendantOf(Workspace) or (tick() - waitPickup > 0.5)
-		else
-			task.wait(0.05)
+
+			local sortedEggs = getSortedEggs()
+			if #sortedEggs == 0 then
+				break -- Brak więcej jajek na mapie
+			end
+
+			local pickedAny = false
+
+			for _, eggData in ipairs(sortedEggs) do
+				if not stealEggEnabled then break end
+
+				local prompt = eggData.prompt
+				local targetPart = eggData.part
+
+				if prompt and targetPart and targetPart:IsDescendantOf(Workspace) then
+					-- Podlatujemy do kolejnego najlepszego jajka
+					tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 260)
+
+					task.wait(0.02)
+					if fireproximityprompt then
+						fireproximityprompt(prompt)
+					else
+						VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+						task.wait(0.02)
+						VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+					end
+
+					-- Sprawdzamy czy liczba trzymanych jajek wzrosła
+					local startCount = getCarriedEggsCount()
+					local waitPickup = tick()
+					local successPickup = false
+
+					repeat
+						task.wait(0.01)
+						if getCarriedEggsCount() > startCount then
+							successPickup = true
+							break
+						end
+					until not targetPart:IsDescendantOf(Workspace) or (tick() - waitPickup > 0.4)
+
+					if successPickup then
+						pickedAny = true
+						break -- Jajko zebrane! Szukamy następnego najlepszego
+					end
+				end
+			end
+
+			-- Jeśli próba zbierania nie przyniosła rezultatu (np. ktoś zabrał jajko), przerywamy pętlę
+			if not pickedAny then
+				break
+			end
+
+			task.wait(0.02)
 		end
 
 		if not stealEggEnabled then break end
 
+		-- Powrót do Safe Zone po zebraniu kompletu jajek
 		safeCFrame = getSafeZoneCFrame()
 		if safeCFrame then
 			tweenTo(safeCFrame, 260)
@@ -376,8 +488,11 @@ local function stealBestEgg()
 
 		task.wait(0.1)
 	end
+
+	releaseLPM()
 end
 
+-- AUTO TRAIN X2 SPEED
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 local speedEffect = playerGui:WaitForChild("SpeedEffect")
 local leftContainer = speedEffect:WaitForChild("LeftContainer")
@@ -435,6 +550,7 @@ stealBtn.MouseButton1Click:Connect(function()
 		stealCircle.Position = UDim2.new(0, 3, 0.5, -7)
 		stealCircle.BackgroundColor3 = Color3.fromRGB(160, 160, 180)
 		stealStroke.Color = Color3.fromRGB(60, 60, 75)
+		releaseLPM()
 	end
 end)
 
