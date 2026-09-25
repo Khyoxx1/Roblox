@@ -5,11 +5,26 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 
 local autoTrainEnabled = false
 local stealEggEnabled = false
+
+local VoidTheme = {
+	Background = Color3.fromRGB(10, 8, 18),
+	Header = Color3.fromRGB(16, 12, 28),
+	Card = Color3.fromRGB(20, 16, 36),
+	CardHover = Color3.fromRGB(30, 22, 54),
+	ItemBg = Color3.fromRGB(26, 20, 46),
+	Accent = Color3.fromRGB(150, 50, 255),
+	AccentGlow = Color3.fromRGB(200, 90, 255),
+	TextPrimary = Color3.fromRGB(245, 240, 255),
+	TextDark = Color3.fromRGB(160, 150, 190),
+	ToggleOff = Color3.fromRGB(32, 26, 50),
+	ToggleOffCircle = Color3.fromRGB(100, 90, 130)
+}
 
 local rarityList = {
 	{id = "common", name = "Common", weight = 1},
@@ -52,83 +67,88 @@ local mutationList = {
 }
 
 local selectedRarities = {}
-for _, r in ipairs(rarityList) do
-	selectedRarities[r.id] = true
-end
+for _, r in ipairs(rarityList) do selectedRarities[r.id] = true end
 
 local selectedMutations = {}
-for _, m in ipairs(mutationList) do
-	selectedMutations[m.id] = true
-end
+for _, m in ipairs(mutationList) do selectedMutations[m.id] = true end
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "EggStealerGUI_V4"
+screenGui.Name = "VoidStealer_Pro"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 330, 0, 360)
+mainFrame.Size = UDim2.new(0, 330, 0, 380)
 mainFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(18, 20, 28)
+mainFrame.BackgroundColor3 = VoidTheme.Background
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
 
 local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 12)
+mainCorner.CornerRadius = UDim.new(0, 14)
 mainCorner.Parent = mainFrame
 
 local mainStroke = Instance.new("UIStroke")
-mainStroke.Color = Color3.fromRGB(110, 86, 207)
-mainStroke.Thickness = 1.8
+mainStroke.Color = VoidTheme.Accent
+mainStroke.Thickness = 2
 mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 mainStroke.Parent = mainFrame
 
+task.spawn(function()
+	while screenGui and screenGui.Parent do
+		TweenService:Create(mainStroke, TweenInfo.new(1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Color = VoidTheme.AccentGlow}):Play()
+		task.wait(1.8)
+		TweenService:Create(mainStroke, TweenInfo.new(1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Color = VoidTheme.Accent}):Play()
+		task.wait(1.8)
+	end
+end)
+
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 38)
-titleBar.BackgroundColor3 = Color3.fromRGB(26, 28, 40)
+titleBar.Size = UDim2.new(1, 0, 0, 42)
+titleBar.BackgroundColor3 = VoidTheme.Header
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
 
 local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 12)
+titleCorner.CornerRadius = UDim.new(0, 14)
 titleCorner.Parent = titleBar
 
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -50, 1, 0)
-titleLabel.Position = UDim2.new(0, 12, 0, 0)
+titleLabel.Position = UDim2.new(0, 14, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "EGG STEALER PRO"
-titleLabel.TextColor3 = Color3.fromRGB(240, 240, 255)
-titleLabel.TextSize = 13
+titleLabel.Text = "🔮 VOID HUB"
+titleLabel.TextColor3 = VoidTheme.TextPrimary
+titleLabel.TextSize = 14
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = titleBar
 
 local minimizeBtn = Instance.new("TextButton")
-minimizeBtn.Size = UDim2.new(0, 26, 0, 26)
-minimizeBtn.Position = UDim2.new(1, -31, 0.5, -13)
-minimizeBtn.BackgroundColor3 = Color3.fromRGB(38, 42, 60)
+minimizeBtn.Size = UDim2.new(0, 28, 0, 28)
+minimizeBtn.Position = UDim2.new(1, -34, 0.5, -14)
+minimizeBtn.BackgroundColor3 = VoidTheme.Card
 minimizeBtn.BorderSizePixel = 0
-minimizeBtn.Text = "-"
-minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
+minimizeBtn.Text = "−"
+minimizeBtn.TextColor3 = VoidTheme.TextPrimary
 minimizeBtn.Font = Enum.Font.GothamBold
-minimizeBtn.TextSize = 16
+minimizeBtn.TextSize = 18
 minimizeBtn.Parent = titleBar
 
 local minCorner = Instance.new("UICorner")
-minCorner.CornerRadius = UDim.new(0, 6)
+minCorner.CornerRadius = UDim.new(0, 8)
 minCorner.Parent = minimizeBtn
 
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -16, 1, -48)
-scrollFrame.Position = UDim2.new(0, 8, 0, 44)
+scrollFrame.Size = UDim2.new(1, -16, 1, -52)
+scrollFrame.Position = UDim2.new(0, 8, 0, 48)
 scrollFrame.BackgroundTransparency = 1
 scrollFrame.BorderSizePixel = 0
-scrollFrame.ScrollBarThickness = 4
-scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(110, 86, 207)
+scrollFrame.ScrollBarThickness = 3
+scrollFrame.ScrollBarImageColor3 = VoidTheme.Accent
 scrollFrame.Parent = mainFrame
 
 local mainLayout = Instance.new("UIListLayout")
@@ -136,20 +156,21 @@ mainLayout.Padding = UDim.new(0, 8)
 mainLayout.SortOrder = Enum.SortOrder.LayoutOrder
 mainLayout.Parent = scrollFrame
 
-mainLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+local function updateScrollSize()
 	scrollFrame.CanvasSize = UDim2.new(0, 0, 0, mainLayout.AbsoluteContentSize.Y + 12)
-end)
+end
+mainLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateScrollSize)
 
 local function createToggleRow(parent, text, layoutOrder, callback)
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, 0, 0, 36)
-	frame.BackgroundColor3 = Color3.fromRGB(25, 27, 38)
+	frame.Size = UDim2.new(1, 0, 0, 38)
+	frame.BackgroundColor3 = VoidTheme.Card
 	frame.BorderSizePixel = 0
 	frame.LayoutOrder = layoutOrder
 	frame.Parent = parent
 
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
+	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = frame
 
 	local label = Instance.new("TextLabel")
@@ -157,16 +178,16 @@ local function createToggleRow(parent, text, layoutOrder, callback)
 	label.Position = UDim2.new(0, 12, 0, 0)
 	label.BackgroundTransparency = 1
 	label.Text = text
-	label.TextColor3 = Color3.fromRGB(230, 230, 245)
+	label.TextColor3 = VoidTheme.TextPrimary
 	label.TextSize = 12
 	label.Font = Enum.Font.GothamMedium
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = frame
 
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, 42, 0, 22)
-	btn.Position = UDim2.new(1, -50, 0.5, -11)
-	btn.BackgroundColor3 = Color3.fromRGB(40, 44, 60)
+	btn.Size = UDim2.new(0, 44, 0, 22)
+	btn.Position = UDim2.new(1, -52, 0.5, -11)
+	btn.BackgroundColor3 = VoidTheme.ToggleOff
 	btn.BorderSizePixel = 0
 	btn.Text = ""
 	btn.Parent = frame
@@ -178,7 +199,7 @@ local function createToggleRow(parent, text, layoutOrder, callback)
 	local circle = Instance.new("Frame")
 	circle.Size = UDim2.new(0, 16, 0, 16)
 	circle.Position = UDim2.new(0, 3, 0.5, -8)
-	circle.BackgroundColor3 = Color3.fromRGB(160, 160, 180)
+	circle.BackgroundColor3 = VoidTheme.ToggleOffCircle
 	circle.BorderSizePixel = 0
 	circle.Parent = btn
 
@@ -190,20 +211,28 @@ local function createToggleRow(parent, text, layoutOrder, callback)
 
 	local function setToggle(val)
 		isToggled = val
-		if isToggled then
-			btn.BackgroundColor3 = Color3.fromRGB(110, 86, 207)
-			circle.Position = UDim2.new(1, -19, 0.5, -8)
-			circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-		else
-			btn.BackgroundColor3 = Color3.fromRGB(40, 44, 60)
-			circle.Position = UDim2.new(0, 3, 0.5, -8)
-			circle.BackgroundColor3 = Color3.fromRGB(160, 160, 180)
-		end
+		local targetColor = isToggled and VoidTheme.Accent or VoidTheme.ToggleOff
+		local targetCirclePos = isToggled and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
+		local targetCircleColor = isToggled and Color3.fromRGB(255, 255, 255) or VoidTheme.ToggleOffCircle
+
+		TweenService:Create(btn, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {BackgroundColor3 = targetColor}):Play()
+		TweenService:Create(circle, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = targetCirclePos,
+			BackgroundColor3 = targetCircleColor
+		}):Play()
+
 		callback(isToggled)
 	end
 
 	btn.MouseButton1Click:Connect(function()
 		setToggle(not isToggled)
+	end)
+
+	frame.MouseEnter:Connect(function()
+		TweenService:Create(frame, TweenInfo.new(0.2), {BackgroundColor3 = VoidTheme.CardHover}):Play()
+	end)
+	frame.MouseLeave:Connect(function()
+		TweenService:Create(frame, TweenInfo.new(0.2), {BackgroundColor3 = VoidTheme.Card}):Play()
 	end)
 
 	return setToggle
@@ -212,7 +241,7 @@ end
 local function createAccordionSection(parent, titleText, itemsList, selectionTable, layoutOrder)
 	local container = Instance.new("Frame")
 	container.Size = UDim2.new(1, 0, 0, 34)
-	container.BackgroundColor3 = Color3.fromRGB(25, 27, 38)
+	container.BackgroundColor3 = VoidTheme.Card
 	container.BorderSizePixel = 0
 	container.ClipsDescendants = true
 	container.LayoutOrder = layoutOrder
@@ -226,7 +255,7 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 	headerBtn.Size = UDim2.new(1, 0, 0, 34)
 	headerBtn.BackgroundTransparency = 1
 	headerBtn.Text = "  ►  " .. titleText
-	headerBtn.TextColor3 = Color3.fromRGB(200, 200, 225)
+	headerBtn.TextColor3 = VoidTheme.TextDark
 	headerBtn.Font = Enum.Font.GothamBold
 	headerBtn.TextSize = 11
 	headerBtn.TextXAlignment = Enum.TextXAlignment.Left
@@ -246,10 +275,10 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 
 	local selectAllBtn = Instance.new("TextButton")
 	selectAllBtn.Size = UDim2.new(0.48, 0, 1, 0)
-	selectAllBtn.BackgroundColor3 = Color3.fromRGB(38, 42, 60)
+	selectAllBtn.BackgroundColor3 = VoidTheme.ItemBg
 	selectAllBtn.BorderSizePixel = 0
 	selectAllBtn.Text = "Select All"
-	selectAllBtn.TextColor3 = Color3.fromRGB(220, 220, 240)
+	selectAllBtn.TextColor3 = VoidTheme.TextPrimary
 	selectAllBtn.Font = Enum.Font.GothamMedium
 	selectAllBtn.TextSize = 10
 	selectAllBtn.Parent = ctrlFrame
@@ -261,10 +290,10 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 	local deselectAllBtn = Instance.new("TextButton")
 	deselectAllBtn.Size = UDim2.new(0.48, 0, 1, 0)
 	deselectAllBtn.Position = UDim2.new(0.52, 0, 0, 0)
-	deselectAllBtn.BackgroundColor3 = Color3.fromRGB(38, 42, 60)
+	deselectAllBtn.BackgroundColor3 = VoidTheme.ItemBg
 	deselectAllBtn.BorderSizePixel = 0
 	deselectAllBtn.Text = "Deselect All"
-	deselectAllBtn.TextColor3 = Color3.fromRGB(220, 220, 240)
+	deselectAllBtn.TextColor3 = VoidTheme.TextPrimary
 	deselectAllBtn.Font = Enum.Font.GothamMedium
 	deselectAllBtn.TextSize = 10
 	deselectAllBtn.Parent = ctrlFrame
@@ -274,7 +303,7 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 	deselectCorner.Parent = deselectAllBtn
 
 	local itemsContainer = Instance.new("Frame")
-	itemsContainer.Size = UDim2.new(1, 0, 0, #itemsList * 30)
+	itemsContainer.Size = UDim2.new(1, 0, 0, #itemsList * 28)
 	itemsContainer.Position = UDim2.new(0, 0, 0, 30)
 	itemsContainer.BackgroundTransparency = 1
 	itemsContainer.Parent = contentArea
@@ -288,8 +317,8 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 
 	for idx, item in ipairs(itemsList) do
 		local row = Instance.new("Frame")
-		row.Size = UDim2.new(1, 0, 0, 26)
-		row.BackgroundColor3 = Color3.fromRGB(32, 35, 50)
+		row.Size = UDim2.new(1, 0, 0, 24)
+		row.BackgroundColor3 = VoidTheme.ItemBg
 		row.BorderSizePixel = 0
 		row.LayoutOrder = idx
 		row.Parent = itemsContainer
@@ -303,21 +332,21 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 		label.Position = UDim2.new(0, 10, 0, 0)
 		label.BackgroundTransparency = 1
 		label.Text = item.name
-		label.TextColor3 = Color3.fromRGB(210, 210, 230)
+		label.TextColor3 = VoidTheme.TextPrimary
 		label.TextSize = 11
 		label.Font = Enum.Font.Gotham
 		label.TextXAlignment = Enum.TextXAlignment.Left
 		label.Parent = row
 
 		local checkBtn = Instance.new("TextButton")
-		checkBtn.Size = UDim2.new(0, 18, 0, 18)
-		checkBtn.Position = UDim2.new(1, -24, 0.5, -9)
-		checkBtn.BackgroundColor3 = Color3.fromRGB(110, 86, 207)
+		checkBtn.Size = UDim2.new(0, 16, 0, 16)
+		checkBtn.Position = UDim2.new(1, -22, 0.5, -8)
+		checkBtn.BackgroundColor3 = VoidTheme.Accent
 		checkBtn.BorderSizePixel = 0
 		checkBtn.Text = "✓"
 		checkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 		checkBtn.Font = Enum.Font.GothamBold
-		checkBtn.TextSize = 11
+		checkBtn.TextSize = 10
 		checkBtn.Parent = row
 
 		local checkCorner = Instance.new("UICorner")
@@ -326,7 +355,8 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 
 		local function updateCheck(state)
 			selectionTable[item.id] = state
-			checkBtn.BackgroundColor3 = state and Color3.fromRGB(110, 86, 207) or Color3.fromRGB(45, 48, 65)
+			local color = state and VoidTheme.Accent or VoidTheme.ToggleOff
+			TweenService:Create(checkBtn, TweenInfo.new(0.15), {BackgroundColor3 = color}):Play()
 			checkBtn.Text = state and "✓" or ""
 		end
 
@@ -338,43 +368,49 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 	end
 
 	selectAllBtn.MouseButton1Click:Connect(function()
-		for _, setter in ipairs(toggleSetters) do
-			setter(true)
-		end
+		for _, setter in ipairs(toggleSetters) do setter(true) end
 	end)
 
 	deselectAllBtn.MouseButton1Click:Connect(function()
-		for _, setter in ipairs(toggleSetters) do
-			setter(false)
-		end
+		for _, setter in ipairs(toggleSetters) do setter(false) end
 	end)
 
 	local isExpanded = false
 	headerBtn.MouseButton1Click:Connect(function()
 		isExpanded = not isExpanded
-		if isExpanded then
-			headerBtn.Text = "  ▼  " .. titleText
-			contentArea.Visible = true
-			local totalHeight = 38 + 30 + (#itemsList * 30)
-			contentArea.Size = UDim2.new(1, -16, 0, 30 + (#itemsList * 30))
-			container.Size = UDim2.new(1, 0, 0, totalHeight)
-		else
-			headerBtn.Text = "  ►  " .. titleText
-			contentArea.Visible = false
-			container.Size = UDim2.new(1, 0, 0, 34)
-		end
+		local targetHeight = isExpanded and (38 + 30 + (#itemsList * 28)) or 34
+		headerBtn.Text = (isExpanded and "  ▼  " or "  ►  ") .. titleText
+		headerBtn.TextColor3 = isExpanded and VoidTheme.AccentGlow or VoidTheme.TextDark
+
+		if isExpanded then contentArea.Visible = true end
+
+		local tween = TweenService:Create(container, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Size = UDim2.new(1, 0, 0, targetHeight)
+		})
+		tween:Play()
+		tween.Completed:Connect(function()
+			if not isExpanded then contentArea.Visible = false end
+			updateScrollSize()
+		end)
 	end)
 end
 
-local setTrainToggle
-local setStealToggle
+local stealToggleSetter = nil
 
-setTrainToggle = createToggleRow(scrollFrame, "Auto Train (x2 Speed)", 1, function(val)
+createToggleRow(scrollFrame, "Auto Train (x2 Speed)", 1, function(val)
 	autoTrainEnabled = val
 end)
 
-setStealToggle = createToggleRow(scrollFrame, "Auto Steal Eggs", 2, function(val)
+stealToggleSetter = createToggleRow(scrollFrame, "Auto Steal Eggs", 2, function(val)
 	stealEggEnabled = val
+	if stealEggEnabled then
+		task.spawn(function()
+			pcall(function()
+				local self = getfenv().stealBestEggFunc
+				if self then self() end
+			end)
+		end)
+	end
 end)
 
 createAccordionSection(scrollFrame, "   ↳ Filter Rarities", rarityList, selectedRarities, 3)
@@ -383,16 +419,13 @@ createAccordionSection(scrollFrame, "   ↳ Filter Mutations", mutationList, sel
 local isMinimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
 	isMinimized = not isMinimized
-	if isMinimized then
-		mainFrame:TweenSize(UDim2.new(0, 330, 0, 38), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
-		minimizeBtn.Text = "+"
-	else
-		mainFrame:TweenSize(UDim2.new(0, 330, 0, 360), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
-		minimizeBtn.Text = "-"
-	end
+	local targetSize = isMinimized and UDim2.new(0, 330, 0, 42) or UDim2.new(0, 330, 0, 380)
+	minimizeBtn.Text = isMinimized and "+" or "−"
+	TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
 end)
 
-local dragging, dragStart, startPos = false, nil, nil
+local dragging = false
+local dragInput, dragStart, startPos
 
 titleBar.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -400,37 +433,35 @@ titleBar.InputBegan:Connect(function(input)
 		dragStart = input.Position
 		startPos = mainFrame.Position
 
-		local connection
-		connection = input.Changed:Connect(function()
+		input.Changed:Connect(function()
 			if input.UserInputState == Enum.UserInputState.End then
 				dragging = false
-				connection:Disconnect()
 			end
 		end)
 	end
 end)
 
+titleBar.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
 UserInputService.InputChanged:Connect(function(input)
-	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+	if input == dragInput and dragging then
 		local delta = input.Position - dragStart
-		mainFrame.Position = UDim2.new(
-			startPos.X.Scale, startPos.X.Offset + delta.X,
-			startPos.Y.Scale, startPos.Y.Offset + delta.Y
-		)
+		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 	end
 end)
 
 local function getMyPlot()
 	local plotsFolder = Workspace:FindFirstChild("Plots")
 	if not plotsFolder then return nil end
-
 	local playerName = LocalPlayer.Name
 	for _, plotFolder in pairs(plotsFolder:GetChildren()) do
 		for _, subPlot in pairs(plotFolder:GetChildren()) do
 			for _, child in pairs(subPlot:GetChildren()) do
-				if child.Name:find(playerName) then
-					return subPlot
-				end
+				if child.Name:find(playerName) then return subPlot end
 			end
 		end
 	end
@@ -447,7 +478,6 @@ local function tweenTo(targetCFrame, speedStuds)
 	if not hrp then return end
 
 	if currentTween then currentTween:Cancel() end
-
 	isTweening = true
 	local distance = (hrp.Position - targetCFrame.Position).Magnitude
 	local speed = speedStuds or 260
@@ -463,7 +493,6 @@ end
 local function getSafeZoneCFrame()
 	local line = Workspace:FindFirstChild("Line")
 	if not line then return nil end
-
 	local myPlot = getMyPlot()
 	if myPlot then
 		local placeholder = myPlot:FindFirstChild("TrainingAreaPlaceholder")
@@ -475,7 +504,6 @@ local function getSafeZoneCFrame()
 			return CFrame.new(targetPos, targetPos + line.CFrame.LookVector)
 		end
 	end
-
 	return line.CFrame * CFrame.new(0, 3, 14)
 end
 
@@ -505,7 +533,6 @@ local function isPlayerInTrainingArea()
 	if not character then return false end
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return false end
-
 	return (hrp.Position - placeholder.Position).Magnitude <= 6
 end
 
@@ -528,9 +555,7 @@ local function equipSlot1()
 		local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
 		if humanoid and backpack then
 			local tools = backpack:GetChildren()
-			if #tools > 0 then
-				humanoid:EquipTool(tools[1])
-			end
+			if #tools > 0 then humanoid:EquipTool(tools[1]) end
 		end
 	end)
 end
@@ -538,7 +563,6 @@ end
 local function getCarriedEggsCount()
 	local character = LocalPlayer.Character
 	if not character then return 0 end
-
 	local count = 0
 	for _, child in pairs(character:GetChildren()) do
 		if child:GetAttribute("OwnerId") == LocalPlayer.UserId or child:HasTag("Pickable") then
@@ -559,19 +583,14 @@ local function getMaxPickup()
 		return Modifiers.Get(LocalPlayer, "MaxPickup")
 	end)
 	if success and type(val) == "number" and val > 0 then return val end
-
-	local success2, val2 = pcall(function()
-		local Knit = require(ReplicatedStorage.Packages.Knit)
-		local ReplicaController = Knit.GetController("ReplicaController")
-		local data = ReplicaController:GetPlayerData(LocalPlayer)
-		return data.Upgrades and data.Upgrades.Carry
-	end)
-	if success2 and type(val2) == "number" and val2 > 0 then return val2 end
-
 	return 5
 end
 
+local isLpmPressed = false
+
 local function pressLPM()
+	if isLpmPressed then return end
+	isLpmPressed = true
 	local camera = Workspace.CurrentCamera
 	local viewport = camera and camera.ViewportSize or Vector2.new(800, 600)
 	local centerX, centerY = viewport.X / 2, viewport.Y / 2
@@ -582,6 +601,8 @@ local function pressLPM()
 end
 
 local function releaseLPM()
+	if not isLpmPressed then return end
+	isLpmPressed = false
 	local camera = Workspace.CurrentCamera
 	local viewport = camera and camera.ViewportSize or Vector2.new(800, 600)
 	local centerX, centerY = viewport.X / 2, viewport.Y / 2
@@ -593,6 +614,7 @@ end
 
 local function chargePower()
 	if not stealEggEnabled then return end
+	
 	pressLPM()
 
 	local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
@@ -610,7 +632,7 @@ local function chargePower()
 					local bar = frame:FindFirstChild("BAR") or frame:FindFirstChild("Bar")
 					if bar then
 						local fill = math.max(bar.Size.X.Scale, bar.Size.Y.Scale)
-						if fill >= 0.92 then break end
+						if fill >= 0.93 then break end
 					end
 				end
 			end
@@ -626,41 +648,30 @@ local function detectEggInfo(pppPart)
 	local combinedText = ""
 	if billboard then
 		for _, desc in pairs(billboard:GetDescendants()) do
-			if desc:IsA("TextLabel") then
-				combinedText = combinedText .. " " .. desc.Text:lower()
-			end
+			if desc:IsA("TextLabel") then combinedText = combinedText .. " " .. desc.Text:lower() end
 		end
 	end
 	combinedText = combinedText .. " " .. pppPart.Name:lower()
 
-	local foundRarity = nil
-	local highestRarityWeight = -1
+	local foundRarity, highestRarityWeight = nil, -1
 	for _, r in ipairs(rarityList) do
-		if combinedText:find(r.id) then
-			if r.weight > highestRarityWeight then
-				highestRarityWeight = r.weight
-				foundRarity = r
-			end
+		if combinedText:find(r.id) and r.weight > highestRarityWeight then
+			highestRarityWeight = r.weight
+			foundRarity = r
 		end
 	end
 
-	local foundMutation = nil
-	local highestMutationWeight = -1
+	local foundMutation, highestMutationWeight = nil, -1
 	for _, m in ipairs(mutationList) do
-		if combinedText:find(m.id) or (m.alt and combinedText:find(m.alt)) then
-			if m.weight > highestMutationWeight then
-				highestMutationWeight = m.weight
-				foundMutation = m
-			end
+		if (combinedText:find(m.id) or (m.alt and combinedText:find(m.alt))) and m.weight > highestMutationWeight then
+			highestMutationWeight = m.weight
+			foundMutation = m
 		end
 	end
 
 	if not foundMutation then
 		for _, m in ipairs(mutationList) do
-			if m.id == "normal" then
-				foundMutation = m
-				break
-			end
+			if m.id == "normal" then foundMutation = m break end
 		end
 	end
 
@@ -672,50 +683,42 @@ local function getSortedEggs()
 	if not spawnedItems then return {} end
 
 	local eggList = {}
-
 	for _, prompt in pairs(spawnedItems:GetDescendants()) do
 		if prompt:IsA("ProximityPrompt") and prompt.Name == "PickablePrompt" then
 			local pppPart = prompt.Parent
 			if pppPart and pppPart:IsA("BasePart") then
 				local rarityObj, mutationObj = detectEggInfo(pppPart)
-
 				local isRarityAllowed = (rarityObj == nil) or (selectedRarities[rarityObj.id] == true)
 				local isMutationAllowed = (mutationObj == nil) or (selectedMutations[mutationObj.id] == true)
 
 				if isRarityAllowed and isMutationAllowed then
 					local rarityWeight = rarityObj and rarityObj.weight or 1
 					local mutationWeight = mutationObj and mutationObj.weight or 1
-					local totalScore = (rarityWeight * 100) + mutationWeight
-
 					table.insert(eggList, {
 						prompt = prompt,
 						part = pppPart,
-						score = totalScore
+						score = (rarityWeight * 100) + mutationWeight
 					})
 				end
 			end
 		end
 	end
 
-	table.sort(eggList, function(a, b)
-		return a.score > b.score
-	end)
-
+	table.sort(eggList, function(a, b) return a.score > b.score end)
 	return eggList
 end
 
 local function waitSeconds(seconds)
 	local elapsed = 0
 	while stealEggEnabled and elapsed < seconds do
-		task.wait(0.1)
-		elapsed = elapsed + 0.1
+		task.wait(0.08)
+		elapsed = elapsed + 0.08
 	end
 end
 
 local function stealBestEgg()
 	while stealEggEnabled do
 		local safeCFrame = getSafeZoneCFrame()
-
 		if safeCFrame then
 			tweenTo(safeCFrame, 260)
 		elseif isPlayerInTrainingArea() then
@@ -734,16 +737,13 @@ local function stealBestEgg()
 		if not stealEggEnabled then break end
 
 		local maxCarry = getMaxPickup()
-
 		while stealEggEnabled do
-			local currentCarried = getCarriedEggsCount()
-			if currentCarried >= maxCarry then break end
+			if getCarriedEggsCount() >= maxCarry then break end
 
 			local sortedEggs = getSortedEggs()
 			if #sortedEggs == 0 then break end
 
 			local pickedAny = false
-
 			for _, eggData in ipairs(sortedEggs) do
 				if not stealEggEnabled then break end
 
@@ -800,14 +800,14 @@ local function stealBestEgg()
 	releaseLPM()
 end
 
+getfenv().stealBestEggFunc = stealBestEgg
+
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 local speedEffect = playerGui:WaitForChild("SpeedEffect")
 local leftContainer = speedEffect:WaitForChild("LeftContainer")
 local currency = leftContainer:WaitForChild("Currency")
 local speed = currency:WaitForChild("Speed")
 local x2Speed = speed:WaitForChild("x2Speed")
-
-local lastPosition = x2Speed.Position
 
 local function clickAtObject(guiObject)
 	local centerPos = guiObject.AbsolutePosition + (guiObject.AbsoluteSize / 2)
@@ -825,24 +825,6 @@ local function tryClickX2Speed()
 	end
 end
 
-setTrainToggle = createToggleRow(scrollFrame, "Auto Train (x2 Speed)", 1, function(val)
-	autoTrainEnabled = val
-	if autoTrainEnabled then
-		tryClickX2Speed()
-	else
-		jump()
-	end
-end)
-
-setStealToggle = createToggleRow(scrollFrame, "Auto Steal Eggs", 2, function(val)
-	stealEggEnabled = val
-	if stealEggEnabled then
-		task.spawn(stealBestEgg)
-	else
-		releaseLPM()
-	end
-end)
-
 task.spawn(function()
 	while true do
 		task.wait(0.4)
@@ -854,15 +836,6 @@ task.spawn(function()
 	end
 end)
 
-x2Speed:GetPropertyChangedSignal("Position"):Connect(function()
-	if x2Speed.Position ~= lastPosition then
-		lastPosition = x2Speed.Position
-		tryClickX2Speed()
-	end
-end)
-
 x2Speed:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
-	if autoTrainEnabled then
-		tryClickX2Speed()
-	end
+	if autoTrainEnabled then tryClickX2Speed() end
 end)
