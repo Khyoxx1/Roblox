@@ -262,29 +262,45 @@ local function isCarryingEgg()
 end
 
 local function chargePower()
-	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-
 	local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 	local effects = playerGui:FindFirstChild("Effects")
-	
+
+	local waitForBar = tick()
+	repeat
+		task.wait(0.02)
+		if effects then
+			local cb = effects:FindFirstChild("ChargeBar")
+			if cb and cb.Visible then
+				local frame = cb:FindFirstChild("Frame")
+				if frame and frame.Visible then
+					break
+				end
+			end
+		end
+	until not stealEggEnabled or (tick() - waitForBar > 8)
+
+	if not stealEggEnabled then return end
+
+	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+
 	local startTime = tick()
-	while stealEggEnabled and (tick() - startTime < 2) do
+	while stealEggEnabled and (tick() - startTime < 3) do
 		task.wait(0.01)
 		if effects then
 			local chargeBar = effects:FindFirstChild("ChargeBar")
-			if not chargeBar or not chargeBar.Visible then
+			if chargeBar and chargeBar.Visible then
+				local frame = chargeBar:FindFirstChild("Frame")
+				if frame and frame.Visible then
+					local bar = frame:FindFirstChild("BAR")
+					if bar and bar.Size.Y.Scale >= 0.95 then
+						break
+					end
+				else
+					break
+				end
+			else
 				break
 			end
-			local frame = chargeBar:FindFirstChild("Frame")
-			if not frame or not frame.Visible then
-				break
-			end
-			local bar = frame:FindFirstChild("BAR")
-			if bar and bar.Size.Y.Scale >= 0.95 then
-				break
-			end
-		else
-			break
 		end
 	end
 
@@ -359,8 +375,6 @@ local function stealBestEgg()
 			repeat
 				task.wait(0.01)
 			until isCarryingEgg() or not targetPart:IsDescendantOf(Workspace) or (tick() - waitPickup > 0.5)
-		else
-			task.wait(0.05)
 		end
 
 		if not stealEggEnabled then break end
@@ -370,7 +384,7 @@ local function stealBestEgg()
 			tweenTo(safeCFrame, 240)
 		end
 
-		task.wait(0.05)
+		task.wait(0.2)
 	end
 end
 
