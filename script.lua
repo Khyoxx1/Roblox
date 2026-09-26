@@ -164,6 +164,23 @@ local function updateScrollSize()
 end
 mainLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateScrollSize)
 
+local function jump()
+	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+	task.wait(0.03)
+	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+end
+
+local isTweening = false
+local currentTween = nil
+
+local function cancelCurrentTween()
+	if currentTween then
+		currentTween:Cancel()
+		currentTween = nil
+	end
+	isTweening = false
+end
+
 local function createToggleRow(parent, text, layoutOrder, callback)
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, 0, 0, 38)
@@ -398,21 +415,13 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 	end)
 end
 
-local isTweening = false
-local currentTween = nil
-
-local function cancelCurrentTween()
-	if currentTween then
-		currentTween:Cancel()
-		currentTween = nil
-	end
-	isTweening = false
-end
-
 createToggleRow(scrollFrame, "Auto Train (x2 Speed)", 1, function(val)
 	autoTrainEnabled = val
 	if not autoTrainEnabled then
 		cancelCurrentTween()
+		task.spawn(function()
+			jump()
+		end)
 	end
 end)
 
@@ -546,12 +555,6 @@ local function isPlayerInTrainingArea()
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return false end
 	return (hrp.Position - placeholder.Position).Magnitude <= 6
-end
-
-local function jump()
-	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
-	task.wait(0.03)
-	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
 end
 
 local function equipSlot1()
