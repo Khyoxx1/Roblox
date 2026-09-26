@@ -66,12 +66,11 @@ local mutationList = {
 	{id = "animatedrainbow", name = "Animated Rainbow", weight = 22}
 }
 
-local selectedRarities = {}
+local selectedRarities, selectedMutations = {}, {}
 for _, r in ipairs(rarityList) do selectedRarities[r.id] = true end
-
-local selectedMutations = {}
 for _, m in ipairs(mutationList) do selectedMutations[m.id] = true end
 
+-- Re-injection cleanup
 local existingGui = LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("VoidStealer_Pro")
 if existingGui then existingGui:Destroy() end
 
@@ -164,12 +163,7 @@ local function updateScrollSize()
 end
 mainLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateScrollSize)
 
-local function jump()
-	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
-	task.wait(0.03)
-	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
-end
-
+-- Helpers Movement & Jump
 local isTweening = false
 local currentTween = nil
 
@@ -179,6 +173,20 @@ local function cancelCurrentTween()
 		currentTween = nil
 	end
 	isTweening = false
+end
+
+local function forceJump()
+	local char = LocalPlayer.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum.Jump = true
+		hum:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
+	pcall(function()
+		VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+		task.wait(0.03)
+		VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+	end)
 end
 
 local function createToggleRow(parent, text, layoutOrder, callback)
@@ -246,13 +254,6 @@ local function createToggleRow(parent, text, layoutOrder, callback)
 
 	btn.MouseButton1Click:Connect(function()
 		setToggle(not isToggled)
-	end)
-
-	frame.MouseEnter:Connect(function()
-		TweenService:Create(frame, TweenInfo.new(0.2), {BackgroundColor3 = VoidTheme.CardHover}):Play()
-	end)
-	frame.MouseLeave:Connect(function()
-		TweenService:Create(frame, TweenInfo.new(0.2), {BackgroundColor3 = VoidTheme.Card}):Play()
 	end)
 
 	return setToggle
@@ -415,12 +416,17 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 	end)
 end
 
+-- Toggles Init
 createToggleRow(scrollFrame, "Auto Train (x2 Speed)", 1, function(val)
 	autoTrainEnabled = val
 	if not autoTrainEnabled then
 		cancelCurrentTween()
+		-- Seria skoków gwarantująca wyjście z trybu treningowego
 		task.spawn(function()
-			jump()
+			for i = 1, 3 do
+				forceJump()
+				task.wait(0.1)
+			end
 		end)
 	end
 end)
@@ -440,6 +446,7 @@ end)
 createAccordionSection(scrollFrame, "Filter Rarities", rarityList, selectedRarities, 3)
 createAccordionSection(scrollFrame, "Filter Mutations", mutationList, selectedMutations, 4)
 
+-- Minimize & Dragging Logic
 local isMinimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
 	isMinimized = not isMinimized
@@ -448,19 +455,14 @@ minimizeBtn.MouseButton1Click:Connect(function()
 	TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
 end)
 
-local dragging = false
-local dragInput, dragStart, startPos
-
+local dragging, dragInput, dragStart, startPos
 titleBar.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		dragging = true
 		dragStart = input.Position
 		startPos = mainFrame.Position
-
 		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
+			if input.UserInputState == Enum.UserInputState.End then dragging = false end
 		end)
 	end
 end)
@@ -478,6 +480,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
+-- Gameplay Functions
 local function getMyPlot()
 	local plotsFolder = Workspace:FindFirstChild("Plots")
 	if not plotsFolder then return nil end
@@ -565,9 +568,7 @@ local function equipSlot1()
 
 	if backpack and humanoid then
 		local tools = backpack:GetChildren()
-		if #tools > 0 then
-			humanoid:EquipTool(tools[1])
-		end
+		if #tools > 0 then humanoid:EquipTool(tools[1]) end
 	end
 
 	pcall(function()
@@ -604,7 +605,6 @@ local function getMaxPickup()
 end
 
 local isLpmPressed = false
-
 local function pressLPM()
 	if isLpmPressed then return end
 	isLpmPressed = true
@@ -631,14 +631,11 @@ end
 
 local function chargePower()
 	if not stealEggEnabled then return end
-	
 	pressLPM()
-
 	local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
 	local startTime = tick()
-	local maxHoldTime = 3.5
 
-	while stealEggEnabled and (tick() - startTime < maxHoldTime) do
+	while stealEggEnabled and (tick() - startTime < 3.5) do
 		task.wait(0.01)
 		local effects = playerGui and playerGui:FindFirstChild("Effects")
 		if effects then
@@ -650,16 +647,12 @@ local function chargePower()
 					if bar then
 						local fillX = (frame.AbsoluteSize.X > 0) and (bar.AbsoluteSize.X / frame.AbsoluteSize.X) or bar.Size.X.Scale
 						local fillY = (frame.AbsoluteSize.Y > 0) and (bar.AbsoluteSize.Y / frame.AbsoluteSize.Y) or bar.Size.Y.Scale
-						local fill = math.min(fillX, fillY)
-						if fill >= 0.94 then
-							break
-						end
+						if math.min(fillX, fillY) >= 0.94 then break end
 					end
 				end
 			end
 		end
 	end
-
 	releaseLPM()
 end
 
@@ -755,18 +748,15 @@ local function stealBestEgg()
 		if safeCFrame then
 			tweenTo(safeCFrame, 280)
 		elseif isPlayerInTrainingArea() then
-			jump()
+			forceJump()
 			task.wait(0.05)
 		end
 
 		if not stealEggEnabled then break end
-
 		waitSeconds(3)
-
 		if not stealEggEnabled then break end
 
 		chargePower()
-
 		if not stealEggEnabled then break end
 
 		local maxCarry = getMaxPickup()
@@ -779,14 +769,12 @@ local function stealBestEgg()
 			local pickedAny = false
 			for _, eggData in ipairs(sortedEggs) do
 				if not stealEggEnabled then break end
-
 				local prompt = eggData.prompt
 				local targetPart = eggData.part
 
 				if prompt and targetPart and targetPart:IsDescendantOf(Workspace) then
 					tweenTo(targetPart.CFrame * CFrame.new(0, 3, 0), 280)
 					task.wait(0.02)
-
 					firePrompt(prompt)
 
 					local startCount = getCarriedEggsCount()
@@ -815,12 +803,9 @@ local function stealBestEgg()
 		if not stealEggEnabled then break end
 
 		safeCFrame = getSafeZoneCFrame()
-		if safeCFrame then
-			tweenTo(safeCFrame, 280)
-		end
+		if safeCFrame then tweenTo(safeCFrame, 280) end
 
 		equipSlot1()
-
 		task.wait(0.1)
 	end
 
@@ -829,6 +814,7 @@ end
 
 getfenv().stealBestEggFunc = stealBestEgg
 
+-- Dynamic Dynamic UI Detection & Universal Clicker
 local function getX2SpeedObject()
 	local pGui = LocalPlayer:FindFirstChild("PlayerGui")
 	if not pGui then return nil end
@@ -838,7 +824,17 @@ local function getX2SpeedObject()
 end
 
 local function clickGuiObject(guiObject)
-	if not guiObject or not guiObject.Parent then return end
+	if not guiObject or not guiObject:IsA("GuiObject") then return end
+
+	-- Metoda 1: getconnections (odpalenie zdarzeń guzików w executorze)
+	local fired = false
+	if getconnections then
+		for _, conn in pairs(getconnections(guiObject.MouseButton1Click)) do conn:Fire() fired = true end
+		for _, conn in pairs(getconnections(guiObject.MouseButton1Down)) do conn:Fire() fired = true end
+		for _, conn in pairs(getconnections(guiObject.Activated)) do conn:Fire() fired = true end
+	end
+
+	-- Metoda 2: Zawsze wyliczaj dokładną pozycję ekranową na żywo (jako zapas / natywna emulacja myszki)
 	local insetY = GuiService:GetGuiInset().Y
 	local pos = guiObject.AbsolutePosition
 	local size = guiObject.AbsoluteSize
@@ -846,19 +842,20 @@ local function clickGuiObject(guiObject)
 	local centerY = pos.Y + (size.Y / 2) + insetY
 
 	VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
-	task.wait(0.02)
+	task.wait(0.01)
 	VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
 end
 
+-- Pętla Treningu
 task.spawn(function()
 	while true do
-		task.wait(0.1)
+		task.wait(0.03)
 		if autoTrainEnabled and not stealEggEnabled then
 			if not isPlayerInTrainingArea() then
 				tweenToTrainingArea()
 			else
 				local x2Btn = getX2SpeedObject()
-				if x2Btn and x2Btn:IsA("GuiObject") and x2Btn.Visible then
+				if x2Btn and x2Btn.Visible then
 					clickGuiObject(x2Btn)
 				end
 			end
