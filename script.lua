@@ -840,7 +840,7 @@ end
 
 getfenv().stealBestEggFunc = stealBestEgg
 
--- SZTYWNA ŚCIEŻKA Z DOKŁADNIE TWOJEGO SCREENA
+-- WYSZUKIWANIE DOKŁADNEJ ŚCIEŻKI Z TWOJEGO SCREENA
 local function getX2SpeedObject()
 	local pg = LocalPlayer:FindFirstChild("PlayerGui")
 	if not pg then return nil end
@@ -860,15 +860,26 @@ local function getX2SpeedObject()
 	local frame = sp:FindFirstChild("x2SpeedFrame")
 	if not frame then return nil end
 
-	return frame:FindFirstChild("x2Speed")
+	return frame:FindFirstChild("x2Speed") or frame
 end
 
--- Klika idealnie w wyznaczony obiekt
+-- POBIERANIE POZYCJI NA EKRANIE I KLIKANIE W TE POZYCJE
 local function clickGuiObject(guiObject)
 	if not guiObject then return end
 
-	-- Odpalenie zdarzeń wewnętrznych
-	if getconnections then
+	local pos = guiObject.AbsolutePosition
+	local size = guiObject.AbsoluteSize
+
+	local centerX = pos.X + (size.X / 2)
+	local centerY = pos.Y + (size.Y / 2)
+
+	local insetY = GuiService:GetGuiInset().Y
+
+	-- Metoda 1: Eventy bezpośrednie (firesignal/getconnections)
+	if firesignal then
+		pcall(function() firesignal(guiObject.MouseButton1Click) end)
+		pcall(function() firesignal(guiObject.Activated) end)
+	elseif getconnections then
 		for _, eventName in ipairs({"MouseButton1Click", "Activated", "MouseButton1Down", "MouseButton1Up", "TouchTap"}) do
 			local connTable = guiObject[eventName]
 			if connTable then
@@ -879,21 +890,29 @@ local function clickGuiObject(guiObject)
 		end
 	end
 
-	-- Fizyczne wywołanie kliknięcia w punkcie
+	-- Metoda 2: Kliknięcie fizyczne w pozycję z offsetem paska Robloxa
 	pcall(function()
-		local insetY = GuiService:GetGuiInset().Y
-		local pos = guiObject.AbsolutePosition
-		local size = guiObject.AbsoluteSize
-		local centerX = pos.X + (size.X / 2)
-		local centerY = pos.Y + (size.Y / 2) + insetY
+		VirtualInputManager:SendMouseButtonEvent(centerX, centerY + insetY, 0, true, game, 0)
+		task.wait(0.01)
+		VirtualInputManager:SendMouseButtonEvent(centerX, centerY + insetY, 0, false, game, 0)
+	end)
 
+	-- Metoda 3: Kliknięcie w pozycję bez offsetu
+	pcall(function()
 		VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
 		task.wait(0.01)
 		VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
 	end)
+
+	-- Metoda 4: VirtualUser
+	pcall(function()
+		VirtualUser:Button1Down(Vector2.new(centerX, centerY + insetY))
+		task.wait(0.01)
+		VirtualUser:Button1Up(Vector2.new(centerX, centerY + insetY))
+	end)
 end
 
--- Pętla treningu z wykrywaniem obecności na arenie
+-- PĘTLA AUTO-TRAIN
 task.spawn(function()
 	while true do
 		task.wait(0.1)
