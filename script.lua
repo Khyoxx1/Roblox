@@ -822,7 +822,7 @@ local function stealBestEgg()
 				end
 			end
 
-			if not pickedAny then break end
+			if not pickedAny me break end
 			task.wait(0.02)
 		end
 
@@ -840,8 +840,8 @@ end
 
 getfenv().stealBestEggFunc = stealBestEgg
 
--- WYSZUKIWANIE DOKŁADNEJ ŚCIEŻKI Z TWOJEGO SCREENA
-local function getX2SpeedObject()
+-- ULEPSZONE POBIERANIE DOKŁADNEGO PRZYCISKU Z DRZEWA ZADANEGO W SCREENIE
+local function getX2SpeedButton()
 	local pg = LocalPlayer:FindFirstChild("PlayerGui")
 	if not pg then return nil end
 
@@ -860,27 +860,38 @@ local function getX2SpeedObject()
 	local frame = sp:FindFirstChild("x2SpeedFrame")
 	if not frame then return nil end
 
-	return frame:FindFirstChild("x2Speed") or frame
+	local x2 = frame:FindFirstChild("x2Speed")
+	if not x2 then return nil end
+
+	-- BAZUJĄC NA ZRZUCIE EKRANU: WŁAŚCIWY GUZIK TO "Button" WNĄTRZ "x2Speed"
+	return x2:FindFirstChild("Button") or x2
 end
 
--- POBIERANIE POZYCJI NA EKRANIE I KLIKANIE W TE POZYCJE
+-- KLIKANIE BEZPOŚREDNIO W WŁAŚCIWY PRZYCISK Z PEŁNYM POKRYCIEM OBSŁUGI EVENTÓW
 local function clickGuiObject(guiObject)
-	if not guiObject then return end
+	if not guiObject or not guiObject:IsA("GuiObject") then return end
+
+	-- Sprawdzenie czy element lub jego rodzic nie są ukryci
+	if not guiObject.Visible then return end
 
 	local pos = guiObject.AbsolutePosition
 	local size = guiObject.AbsoluteSize
 
 	local centerX = pos.X + (size.X / 2)
 	local centerY = pos.Y + (size.Y / 2)
-
 	local insetY = GuiService:GetGuiInset().Y
 
-	-- Metoda 1: Eventy bezpośrednie (firesignal/getconnections)
+	-- Metoda 1: firesignal (jeśli Twój executor wspiera)
 	if firesignal then
 		pcall(function() firesignal(guiObject.MouseButton1Click) end)
 		pcall(function() firesignal(guiObject.Activated) end)
-	elseif getconnections then
-		for _, eventName in ipairs({"MouseButton1Click", "Activated", "MouseButton1Down", "MouseButton1Up", "TouchTap"}) do
+		pcall(function() firesignal(guiObject.MouseButton1Down) end)
+		pcall(function() firesignal(guiObject.MouseButton1Up) end)
+	end
+
+	-- Metoda 2: getconnections (wywoływanie przypiętych funkcji Robloxa)
+	if getconnections then
+		for _, eventName in ipairs({"MouseButton1Click", "Activated", "MouseButton1Down", "MouseButton1Up", "TouchTap", "InputBegan"}) do
 			local connTable = guiObject[eventName]
 			if connTable then
 				for _, conn in pairs(getconnections(connTable)) do
@@ -890,25 +901,18 @@ local function clickGuiObject(guiObject)
 		end
 	end
 
-	-- Metoda 2: Kliknięcie fizyczne w pozycję z offsetem paska Robloxa
+	-- Metoda 3: Symulacja myszki z uwzględnieniem GuiInset
 	pcall(function()
 		VirtualInputManager:SendMouseButtonEvent(centerX, centerY + insetY, 0, true, game, 0)
 		task.wait(0.01)
 		VirtualInputManager:SendMouseButtonEvent(centerX, centerY + insetY, 0, false, game, 0)
 	end)
 
-	-- Metoda 3: Kliknięcie w pozycję bez offsetu
+	-- Metoda 4: Symulacja bez offsetu (zależne od wyskalowania ekranu)
 	pcall(function()
 		VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
 		task.wait(0.01)
 		VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
-	end)
-
-	-- Metoda 4: VirtualUser
-	pcall(function()
-		VirtualUser:Button1Down(Vector2.new(centerX, centerY + insetY))
-		task.wait(0.01)
-		VirtualUser:Button1Up(Vector2.new(centerX, centerY + insetY))
 	end)
 end
 
@@ -920,9 +924,9 @@ task.spawn(function()
 			if not isPlayerInTrainingArea() then
 				tweenToTrainingArea()
 			else
-				local x2Btn = getX2SpeedObject()
-				if x2Btn then
-					clickGuiObject(x2Btn)
+				local targetBtn = getX2SpeedButton()
+				if targetBtn then
+					clickGuiObject(targetBtn)
 				end
 			end
 		end
