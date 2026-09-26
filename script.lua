@@ -5,7 +5,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -398,19 +398,33 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 	end)
 end
 
-local stealToggleSetter = nil
+local isTweening = false
+local currentTween = nil
+
+local function cancelCurrentTween()
+	if currentTween then
+		currentTween:Cancel()
+		currentTween = nil
+	end
+	isTweening = false
+end
 
 createToggleRow(scrollFrame, "Auto Train (x2 Speed)", 1, function(val)
 	autoTrainEnabled = val
+	if not autoTrainEnabled then
+		cancelCurrentTween()
+	end
 end)
 
-stealToggleSetter = createToggleRow(scrollFrame, "Auto Steal Eggs", 2, function(val)
+createToggleRow(scrollFrame, "Auto Steal Eggs", 2, function(val)
 	stealEggEnabled = val
 	if stealEggEnabled then
 		task.spawn(function()
 			local self = getfenv().stealBestEggFunc
 			if self then self() end
 		end)
+	else
+		cancelCurrentTween()
 	end
 end)
 
@@ -469,16 +483,13 @@ local function getMyPlot()
 	return nil
 end
 
-local isTweening = false
-local currentTween = nil
-
 local function tweenTo(targetCFrame, speedStuds)
 	local character = LocalPlayer.Character
 	if not character then return end
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 
-	if currentTween then currentTween:Cancel() end
+	cancelCurrentTween()
 	isTweening = true
 	local distance = (hrp.Position - targetCFrame.Position).Magnitude
 	local speed = speedStuds or 280
@@ -815,40 +826,39 @@ end
 
 getfenv().stealBestEggFunc = stealBestEgg
 
-local playerGui = LocalPlayer:WaitForChild("PlayerGui")
-local speedEffect = playerGui:WaitForChild("SpeedEffect")
-local leftContainer = speedEffect:WaitForChild("LeftContainer")
-local currency = leftContainer:WaitForChild("Currency")
-local speed = currency:WaitForChild("Speed")
-local x2Speed = speed:WaitForChild("x2Speed")
-
-local function clickAtObject(guiObject)
-	local centerPos = guiObject.AbsolutePosition + (guiObject.AbsoluteSize / 2)
-	VirtualInputManager:SendMouseButtonEvent(centerPos.X, centerPos.Y + 36, 0, true, game, 0)
-	task.wait(0.04)
-	VirtualInputManager:SendMouseButtonEvent(centerPos.X, centerPos.Y + 36, 0, false, game, 0)
+local function getX2SpeedObject()
+	local pGui = LocalPlayer:FindFirstChild("PlayerGui")
+	if not pGui then return nil end
+	local speedEffect = pGui:FindFirstChild("SpeedEffect")
+	if not speedEffect then return nil end
+	return speedEffect:FindFirstChild("x2Speed", true)
 end
 
-local function tryClickX2Speed()
-	if not autoTrainEnabled then return end
-	tweenToTrainingArea()
-	task.wait(0.08)
-	if isPlayerInTrainingArea() then
-		clickAtObject(x2Speed)
-	end
+local function clickGuiObject(guiObject)
+	if not guiObject or not guiObject.Parent then return end
+	local insetY = GuiService:GetGuiInset().Y
+	local pos = guiObject.AbsolutePosition
+	local size = guiObject.AbsoluteSize
+	local centerX = pos.X + (size.X / 2)
+	local centerY = pos.Y + (size.Y / 2) + insetY
+
+	VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
+	task.wait(0.02)
+	VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
 end
 
 task.spawn(function()
 	while true do
-		task.wait(0.3)
-		if autoTrainEnabled and not isTweening and not stealEggEnabled then
+		task.wait(0.1)
+		if autoTrainEnabled and not stealEggEnabled then
 			if not isPlayerInTrainingArea() then
 				tweenToTrainingArea()
+			else
+				local x2Btn = getX2SpeedObject()
+				if x2Btn and x2Btn:IsA("GuiObject") and x2Btn.Visible then
+					clickGuiObject(x2Btn)
+				end
 			end
 		end
 	end
-end)
-
-x2Speed:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
-	if autoTrainEnabled then tryClickX2Speed() end
 end)
