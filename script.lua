@@ -173,12 +173,20 @@ local function cancelCurrentTween()
 	isTweening = false
 end
 
--- Dokładnie jeden pojedynczy skok
+local isJumping = false
 local function singleJump()
+	if isJumping then return end
 	local char = LocalPlayer.Character
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
 	if hum then
-		hum:ChangeState(Enum.HumanoidStateType.Jumping)
+		local state = hum:GetState()
+		if state ~= Enum.HumanoidStateType.Jumping and state ~= Enum.HumanoidStateType.Freefall then
+			isJumping = true
+			hum.Jump = true
+			task.delay(0.4, function()
+				isJumping = false
+			end)
+		end
 	end
 end
 
@@ -466,7 +474,6 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- Zaawansowane i niezawodne wykrywanie działki gracza
 local function getMyPlot()
 	local plotsFolder = Workspace:FindFirstChild("Plots")
 	if not plotsFolder then return nil end
@@ -550,7 +557,6 @@ local function getSafeZoneCFrame()
 end
 
 local function tweenToTrainingArea()
-	if isTweening then return end
 	local myPlot = getMyPlot()
 	if not myPlot then return end
 	local placeholder = getTrainingPlaceholder(myPlot)
@@ -562,7 +568,7 @@ local function tweenToTrainingArea()
 	if not hrp then return end
 
 	local targetCFrame = placeholder.CFrame * CFrame.new(0, 3, 0)
-	if (hrp.Position - targetCFrame.Position).Magnitude > 3 then
+	if (hrp.Position - targetCFrame.Position).Magnitude > 5 then
 		tweenTo(targetCFrame, 280)
 	end
 end
@@ -577,7 +583,7 @@ local function isPlayerInTrainingArea()
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return false end
 
-	return (hrp.Position - placeholder.Position).Magnitude <= 6
+	return (hrp.Position - placeholder.Position).Magnitude <= 5
 end
 
 local function equipSlot1()
@@ -834,34 +840,60 @@ end
 
 getfenv().stealBestEggFunc = stealBestEgg
 
+-- SZTYWNA ŚCIEŻKA Z DOKŁADNIE TWOJEGO SCREENA
 local function getX2SpeedObject()
-	local pGui = LocalPlayer:FindFirstChild("PlayerGui")
-	if not pGui then return nil end
-	local speedEffect = pGui:FindFirstChild("SpeedEffect")
-	if not speedEffect then return nil end
-	return speedEffect:FindFirstChild("x2Speed", true)
+	local pg = LocalPlayer:FindFirstChild("PlayerGui")
+	if not pg then return nil end
+
+	local se = pg:FindFirstChild("SpeedEffect")
+	if not se then return nil end
+
+	local lc = se:FindFirstChild("LeftContainer")
+	if not lc then return nil end
+
+	local cur = lc:FindFirstChild("Currency")
+	if not cur then return nil end
+
+	local sp = cur:FindFirstChild("Speed")
+	if not sp then return nil end
+
+	local frame = sp:FindFirstChild("x2SpeedFrame")
+	if not frame then return nil end
+
+	return frame:FindFirstChild("x2Speed")
 end
 
+-- Klika idealnie w wyznaczony obiekt
 local function clickGuiObject(guiObject)
-	if not guiObject or not guiObject:IsA("GuiObject") then return end
+	if not guiObject then return end
 
+	-- Odpalenie zdarzeń wewnętrznych
 	if getconnections then
-		for _, conn in pairs(getconnections(guiObject.MouseButton1Click)) do conn:Fire() end
-		for _, conn in pairs(getconnections(guiObject.Activated)) do conn:Fire() end
+		for _, eventName in ipairs({"MouseButton1Click", "Activated", "MouseButton1Down", "MouseButton1Up", "TouchTap"}) do
+			local connTable = guiObject[eventName]
+			if connTable then
+				for _, conn in pairs(getconnections(connTable)) do
+					pcall(function() conn:Fire() end)
+				end
+			end
+		end
 	end
 
-	local insetY = GuiService:GetGuiInset().Y
-	local pos = guiObject.AbsolutePosition
-	local size = guiObject.AbsoluteSize
-	local centerX = pos.X + (size.X / 2)
-	local centerY = pos.Y + (size.Y / 2) + insetY
+	-- Fizyczne wywołanie kliknięcia w punkcie
+	pcall(function()
+		local insetY = GuiService:GetGuiInset().Y
+		local pos = guiObject.AbsolutePosition
+		local size = guiObject.AbsoluteSize
+		local centerX = pos.X + (size.X / 2)
+		local centerY = pos.Y + (size.Y / 2) + insetY
 
-	VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
-	task.wait(0.01)
-	VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
+		VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
+		task.wait(0.01)
+		VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
+	end)
 end
 
--- Główna pętla treningu
+-- Pętla treningu z wykrywaniem obecności na arenie
 task.spawn(function()
 	while true do
 		task.wait(0.1)
@@ -870,7 +902,7 @@ task.spawn(function()
 				tweenToTrainingArea()
 			else
 				local x2Btn = getX2SpeedObject()
-				if x2Btn and x2Btn.Visible then
+				if x2Btn then
 					clickGuiObject(x2Btn)
 				end
 			end
