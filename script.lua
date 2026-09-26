@@ -99,21 +99,48 @@ local function singleJump()
 end
 
 local function getMyPlot()
-	local plotsFolder = Workspace:FindFirstChild("Plots")
+	local plotsFolder = Workspace:FindFirstChild("Plots") or Workspace:FindFirstChild("PlotsFolder") or Workspace:FindFirstChild("Tycoons")
+	if not plotsFolder then
+		for _, child in pairs(Workspace:GetChildren()) do
+			if child.Name:lower():find("plot") or child.Name:lower():find("tycoon") then
+				plotsFolder = child
+				break
+			end
+		end
+	end
+
 	if not plotsFolder then return nil end
 	local pName = LocalPlayer.Name:lower()
 	local dName = LocalPlayer.DisplayName:lower()
+	local userId = LocalPlayer.UserId
 
 	for _, plotFolder in pairs(plotsFolder:GetChildren()) do
 		local targets = (#plotFolder:GetChildren() > 0) and plotFolder:GetChildren() or {plotFolder}
 		for _, subPlot in pairs(targets) do
-			local ownerAttr = subPlot:GetAttribute("Owner") or subPlot:GetAttribute("OwnerId") or subPlot:GetAttribute("Player")
-			if ownerAttr and (tostring(ownerAttr):lower() == pName or ownerAttr == LocalPlayer.UserId) then
+			for _, attrName in ipairs({"Owner", "OwnerId", "Player", "OwnerName", "UserId"}) do
+				local val = subPlot:GetAttribute(attrName)
+				if val then
+					if tostring(val):lower() == pName or val == userId or (dName ~= "" and tostring(val):lower() == dName) then
+						return subPlot
+					end
+				end
+			end
+
+			local ownerVal = subPlot:FindFirstChild("Owner") or subPlot:FindFirstChild("OwnerValue") or subPlot:FindFirstChild("Player") or subPlot:FindFirstChild("OwnerId")
+			if ownerVal and ownerVal:IsA("ValueBase") then
+				if tostring(ownerVal.Value):lower() == pName or ownerVal.Value == userId or (ownerVal:IsA("ObjectValue") and ownerVal.Value == LocalPlayer) then
+					return subPlot
+				end
+			end
+
+			if subPlot.Name:lower():find(pName) or (dName ~= "" and subPlot.Name:lower():find(dName)) then
 				return subPlot
 			end
-			for _, child in pairs(subPlot:GetChildren()) do
-				local cName = child.Name:lower()
-				if cName:find(pName) or (dName ~= "" and cName:find(dName)) then
+
+			for _, desc in pairs(subPlot:GetDescendants()) do
+				if desc:IsA("TextLabel") and (desc.Text:lower():find(pName) or (dName ~= "" and desc.Text:lower():find(dName))) then
+					return subPlot
+				elseif desc:IsA("ValueBase") and (tostring(desc.Value):lower() == pName or desc.Value == userId) then
 					return subPlot
 				end
 			end
@@ -123,14 +150,33 @@ local function getMyPlot()
 end
 
 local function getTrainingPlaceholder(plot)
-	if not plot then return nil end
-	local ph = plot:FindFirstChild("TrainingAreaPlaceholder") or plot:FindFirstChild("TrainingArea")
-	if ph then return ph end
-	for _, v in pairs(plot:GetDescendants()) do
-		if v:IsA("BasePart") and v.Name:lower():find("train") then
-			return v
+	if plot then
+		local ph = plot:FindFirstChild("TrainingAreaPlaceholder") 
+			or plot:FindFirstChild("TrainingArea") 
+			or plot:FindFirstChild("Training")
+			or plot:FindFirstChild("Train")
+		if ph then return ph end
+
+		for _, v in pairs(plot:GetDescendants()) do
+			if v:IsA("BasePart") or v:IsA("Model") then
+				local name = v.Name:lower()
+				if name:find("train") then
+					return v
+				end
+			end
 		end
 	end
+
+	for _, v in pairs(Workspace:GetDescendants()) do
+		if v:IsA("BasePart") and (v.Name:lower():find("trainingarea") or v.Name:lower() == "trainingareaplaceholder") then
+			if plot and v:IsDescendantOf(plot) then
+				return v
+			elseif not plot then
+				return v
+			end
+		end
+	end
+
 	return nil
 end
 
@@ -140,11 +186,13 @@ local function tweenTo(targetCFrame, speedStuds)
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 
+	local distance = (hrp.Position - targetCFrame.Position).Magnitude
+	if distance < 3 then return end
+
 	cancelCurrentTween()
 	isTweening = true
-	local distance = (hrp.Position - targetCFrame.Position).Magnitude
 	local speed = speedStuds or 280
-	local duration = math.clamp(distance / speed, 0.01, 2.0)
+	local duration = math.clamp(distance / speed, 0.05, 2.5)
 
 	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	currentTween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
@@ -157,21 +205,31 @@ local function tweenTo(targetCFrame, speedStuds)
 		if conn then conn:Disconnect() end
 	end)
 
-	while not completed and isTweening do
+	local startT = tick()
+	while not completed and isTweening and (tick() - startT < duration + 0.2) do
 		task.wait(0.02)
 	end
 	isTweening = false
 end
 
 local function getSafeZoneCFrame()
-	local line = Workspace:FindFirstChild("Line")
+	local line = Workspace:FindFirstChild("Line") or Workspace:FindFirstChild("SafeZone") or Workspace:FindFirstChild("SafeLine")
+	if not line then
+		for _, v in pairs(Workspace:GetChildren()) do
+			if v:IsA("BasePart") and (v.Name:lower() == "line" or v.Name:lower():find("safe")) then
+				line = v
+				break
+			end
+		end
+	end
 	if not line then return nil end
+
 	local myPlot = getMyPlot()
 	if myPlot then
 		local placeholder = getTrainingPlaceholder(myPlot)
 		if placeholder then
 			local linePos = line.Position
-			local placeholderPos = placeholder.Position
+			local placeholderPos = placeholder:IsA("Model") and placeholder:GetPivot().Position or placeholder.Position
 			local dir = (Vector3.new(placeholderPos.X, linePos.Y, placeholderPos.Z) - linePos).Unit
 			local targetPos = linePos + (dir * 14) + Vector3.new(0, 3, 0)
 			return CFrame.new(targetPos, targetPos + line.CFrame.LookVector)
@@ -182,7 +240,6 @@ end
 
 local function tweenToTrainingArea()
 	local myPlot = getMyPlot()
-	if not myPlot then return end
 	local placeholder = getTrainingPlaceholder(myPlot)
 	if not placeholder then return end
 
@@ -191,23 +248,43 @@ local function tweenToTrainingArea()
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 
-	local targetCFrame = placeholder.CFrame * CFrame.new(0, 3, 0)
-	if (hrp.Position - targetCFrame.Position).Magnitude > 5 then
+	local targetPos = placeholder:IsA("Model") and placeholder:GetPivot() or placeholder.CFrame
+	local targetCFrame = targetPos * CFrame.new(0, 3, 0)
+
+	if (hrp.Position - targetCFrame.Position).Magnitude > 4 then
 		tweenTo(targetCFrame, 280)
 	end
 end
 
 local function isPlayerInTrainingArea()
-	local myPlot = getMyPlot()
-	if not myPlot then return false end
-	local placeholder = getTrainingPlaceholder(myPlot)
-	if not placeholder then return false end
 	local character = LocalPlayer.Character
 	if not character then return false end
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return false end
 
-	return (hrp.Position - placeholder.Position).Magnitude <= 5
+	local myPlot = getMyPlot()
+	local placeholder = getTrainingPlaceholder(myPlot)
+
+	if placeholder then
+		local pos = placeholder:IsA("Model") and placeholder:GetPivot().Position or placeholder.Position
+		local xzDist = (Vector3.new(hrp.Position.X, 0, hrp.Position.Z) - Vector3.new(pos.X, 0, pos.Z)).Magnitude
+		local yDist = math.abs(hrp.Position.Y - pos.Y)
+
+		if xzDist <= 35 and yDist <= 20 then
+			return true
+		end
+	end
+
+	for _, v in pairs(Workspace:GetDescendants()) do
+		if v:IsA("BasePart") and (v.Name:lower():find("trainingarea") or v.Name:lower() == "trainingareaplaceholder") then
+			local xzDist = (Vector3.new(hrp.Position.X, 0, hrp.Position.Z) - Vector3.new(v.Position.X, 0, v.Position.Z)).Magnitude
+			if xzDist <= 25 then
+				return true
+			end
+		end
+	end
+
+	return false
 end
 
 local function equipSlot1()
@@ -466,57 +543,82 @@ local function getX2SpeedButton()
 	local pg = LocalPlayer:FindFirstChild("PlayerGui")
 	if not pg then return nil end
 
-	local se = pg:FindFirstChild("SpeedEffect")
-	if not se then return nil end
+	local speedEffect = pg:FindFirstChild("SpeedEffect", true)
+	if speedEffect then
+		local x2Frame = speedEffect:FindFirstChild("x2SpeedFrame", true) or speedEffect:FindFirstChild("x2Speed", true) or speedEffect
+		if x2Frame then
+			local btn = x2Frame:FindFirstChildOfClass("TextButton") or x2Frame:FindFirstChildOfClass("ImageButton")
+			if not btn then
+				btn = x2Frame:FindFirstChild("Button", true) or x2Frame:FindFirstChild("x2Speed", true)
+			end
+			if btn and (btn:IsA("GuiButton") or btn:IsA("GuiObject")) then
+				return btn
+			end
+			if x2Frame:IsA("GuiButton") then
+				return x2Frame
+			end
+		end
+	end
 
-	local x2Frame = se:FindFirstChild("x2SpeedFrame", true)
+	local x2Frame = pg:FindFirstChild("x2SpeedFrame", true) or pg:FindFirstChild("x2Speed", true)
 	if x2Frame then
-		return x2Frame:FindFirstChild("Button", true) or x2Frame:FindFirstChild("x2Speed", true) or x2Frame
+		local btn = x2Frame:FindFirstChildOfClass("TextButton") or x2Frame:FindFirstChildOfClass("ImageButton") or x2Frame:FindFirstChild("Button", true)
+		if btn then return btn end
+		if x2Frame:IsA("GuiButton") or x2Frame:IsA("GuiObject") then return x2Frame end
+	end
+
+	for _, desc in pairs(pg:GetDescendants()) do
+		if desc:IsA("GuiButton") then
+			local n = desc.Name:lower()
+			if n:find("x2") or n:find("speed") or n:find("train") then
+				return desc
+			end
+		end
 	end
 
 	return nil
 end
 
 local function clickGuiObject(guiObject)
-	if not guiObject or not guiObject:IsA("GuiObject") then return end
-	if guiObject.AbsoluteSize.X <= 0 or guiObject.AbsoluteSize.Y <= 0 then return end
+	if not guiObject then return end
 
-	local pos = guiObject.AbsolutePosition
-	local size = guiObject.AbsoluteSize
-
-	local centerX = pos.X + (size.X / 2)
-	local centerY = pos.Y + (size.Y / 2)
-	local insetY = GuiService:GetGuiInset().Y
-
-	if firesignal then
-		pcall(function() firesignal(guiObject.MouseButton1Click) end)
-		pcall(function() firesignal(guiObject.Activated) end)
-		pcall(function() firesignal(guiObject.MouseButton1Down) end)
-		pcall(function() firesignal(guiObject.MouseButton1Up) end)
+	local targetBtn = guiObject
+	if not targetBtn:IsA("GuiButton") then
+		local childBtn = guiObject:FindFirstChildWhichIsA("GuiButton", true)
+		if childBtn then targetBtn = childBtn end
 	end
 
-	if getconnections then
-		for _, eventName in ipairs({"MouseButton1Click", "Activated", "MouseButton1Down", "MouseButton1Up", "TouchTap"}) do
-			local connTable = guiObject[eventName]
-			if connTable then
-				for _, conn in pairs(getconnections(connTable)) do
-					pcall(function() conn:Fire() end)
+	local events = {"MouseButton1Click", "Activated", "MouseButton1Down", "MouseButton1Up", "TouchTap"}
+	for _, eventName in ipairs(events) do
+		pcall(function()
+			if firesignal and targetBtn[eventName] then
+				firesignal(targetBtn[eventName])
+			end
+		end)
+		pcall(function()
+			if getconnections and targetBtn[eventName] then
+				for _, conn in pairs(getconnections(targetBtn[eventName])) do
+					if conn.Fire then conn:Fire() end
+					if conn.Function then conn.Function() end
 				end
 			end
-		end
+		end)
 	end
 
-	pcall(function()
-		VirtualInputManager:SendMouseButtonEvent(centerX, centerY + insetY, 0, true, game, 0)
-		task.wait(0.01)
-		VirtualInputManager:SendMouseButtonEvent(centerX, centerY + insetY, 0, false, game, 0)
-	end)
+	if targetBtn:IsA("GuiObject") and targetBtn.AbsoluteSize.X > 0 and targetBtn.AbsoluteSize.Y > 0 then
+		local pos = targetBtn.AbsolutePosition
+		local size = targetBtn.AbsoluteSize
+		local inset = GuiService:GetGuiInset()
 
-	pcall(function()
-		VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
-		task.wait(0.01)
-		VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
-	end)
+		local centerX = pos.X + (size.X / 2)
+		local centerY = pos.Y + (size.Y / 2) + inset.Y
+
+		pcall(function()
+			VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
+			task.wait(0.01)
+			VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
+		end)
+	end
 end
 
 -- TWORZENIE INTERFEJSU
@@ -896,10 +998,16 @@ end)
 -- PĘTLA AUTO-TRAIN
 task.spawn(function()
 	while true do
-		task.wait(0.1)
+		task.wait(0.05)
 		if autoTrainEnabled and not stealEggEnabled then
-			if not isPlayerInTrainingArea() then
-				tweenToTrainingArea()
+			local inArea = isPlayerInTrainingArea()
+			local myPlot = getMyPlot()
+			local placeholder = getTrainingPlaceholder(myPlot)
+
+			if not inArea and placeholder then
+				if not isTweening then
+					tweenToTrainingArea()
+				end
 			else
 				local targetBtn = getX2SpeedButton()
 				if targetBtn then
