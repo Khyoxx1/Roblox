@@ -70,98 +70,6 @@ local selectedRarities, selectedMutations = {}, {}
 for _, r in ipairs(rarityList) do selectedRarities[r.id] = true end
 for _, m in ipairs(mutationList) do selectedMutations[m.id] = true end
 
-local existingGui = LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("VoidStealer_Pro")
-if existingGui then existingGui:Destroy() end
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "VoidStealer_Pro"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 330, 0, 380)
-mainFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
-mainFrame.BackgroundColor3 = VoidTheme.Background
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = screenGui
-
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 14)
-mainCorner.Parent = mainFrame
-
-local mainStroke = Instance.new("UIStroke")
-mainStroke.Color = VoidTheme.Accent
-mainStroke.Thickness = 2
-mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-mainStroke.Parent = mainFrame
-
-task.spawn(function()
-	while screenGui and screenGui.Parent do
-		TweenService:Create(mainStroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Color = VoidTheme.AccentGlow}):Play()
-		task.wait(1.5)
-		TweenService:Create(mainStroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Color = VoidTheme.Accent}):Play()
-		task.wait(1.5)
-	end
-end)
-
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 42)
-titleBar.BackgroundColor3 = VoidTheme.Header
-titleBar.BorderSizePixel = 0
-titleBar.Parent = mainFrame
-
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 14)
-titleCorner.Parent = titleBar
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -50, 1, 0)
-titleLabel.Position = UDim2.new(0, 14, 0, 0)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "VOID HUB"
-titleLabel.TextColor3 = VoidTheme.TextPrimary
-titleLabel.TextSize = 14
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = titleBar
-
-local minimizeBtn = Instance.new("TextButton")
-minimizeBtn.Size = UDim2.new(0, 28, 0, 28)
-minimizeBtn.Position = UDim2.new(1, -34, 0.5, -14)
-minimizeBtn.BackgroundColor3 = VoidTheme.Card
-minimizeBtn.BorderSizePixel = 0
-minimizeBtn.Text = "-"
-minimizeBtn.TextColor3 = VoidTheme.TextPrimary
-minimizeBtn.Font = Enum.Font.GothamBold
-minimizeBtn.TextSize = 18
-minimizeBtn.Parent = titleBar
-
-local minCorner = Instance.new("UICorner")
-minCorner.CornerRadius = UDim.new(0, 8)
-minCorner.Parent = minimizeBtn
-
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -16, 1, -52)
-scrollFrame.Position = UDim2.new(0, 8, 0, 48)
-scrollFrame.BackgroundTransparency = 1
-scrollFrame.BorderSizePixel = 0
-scrollFrame.ScrollBarThickness = 3
-scrollFrame.ScrollBarImageColor3 = VoidTheme.Accent
-scrollFrame.Parent = mainFrame
-
-local mainLayout = Instance.new("UIListLayout")
-mainLayout.Padding = UDim.new(0, 8)
-mainLayout.SortOrder = Enum.SortOrder.LayoutOrder
-mainLayout.Parent = scrollFrame
-
-local function updateScrollSize()
-	scrollFrame.CanvasSize = UDim2.new(0, 0, 0, mainLayout.AbsoluteContentSize.Y + 16)
-end
-mainLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateScrollSize)
-
 local isTweening = false
 local currentTween = nil
 
@@ -189,290 +97,6 @@ local function singleJump()
 		end
 	end
 end
-
-local function createToggleRow(parent, text, layoutOrder, callback)
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, 0, 0, 38)
-	frame.BackgroundColor3 = VoidTheme.Card
-	frame.BorderSizePixel = 0
-	frame.LayoutOrder = layoutOrder
-	frame.Parent = parent
-
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 10)
-	corner.Parent = frame
-
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, -60, 1, 0)
-	label.Position = UDim2.new(0, 12, 0, 0)
-	label.BackgroundTransparency = 1
-	label.Text = text
-	label.TextColor3 = VoidTheme.TextPrimary
-	label.TextSize = 12
-	label.Font = Enum.Font.GothamMedium
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.Parent = frame
-
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, 44, 0, 22)
-	btn.Position = UDim2.new(1, -52, 0.5, -11)
-	btn.BackgroundColor3 = VoidTheme.ToggleOff
-	btn.BorderSizePixel = 0
-	btn.Text = ""
-	btn.Parent = frame
-
-	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(1, 0)
-	btnCorner.Parent = btn
-
-	local circle = Instance.new("Frame")
-	circle.Size = UDim2.new(0, 16, 0, 16)
-	circle.Position = UDim2.new(0, 3, 0.5, -8)
-	circle.BackgroundColor3 = VoidTheme.ToggleOffCircle
-	circle.BorderSizePixel = 0
-	circle.Parent = btn
-
-	local circleCorner = Instance.new("UICorner")
-	circleCorner.CornerRadius = UDim.new(1, 0)
-	circleCorner.Parent = circle
-
-	local isToggled = false
-
-	local function setToggle(val)
-		isToggled = val
-		local targetColor = isToggled and VoidTheme.Accent or VoidTheme.ToggleOff
-		local targetCirclePos = isToggled and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
-		local targetCircleColor = isToggled and Color3.fromRGB(255, 255, 255) or VoidTheme.ToggleOffCircle
-
-		TweenService:Create(btn, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {BackgroundColor3 = targetColor}):Play()
-		TweenService:Create(circle, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-			Position = targetCirclePos,
-			BackgroundColor3 = targetCircleColor
-		}):Play()
-
-		callback(isToggled)
-	end
-
-	btn.MouseButton1Click:Connect(function()
-		setToggle(not isToggled)
-	end)
-
-	return setToggle
-end
-
-local function createAccordionSection(parent, titleText, itemsList, selectionTable, layoutOrder)
-	local container = Instance.new("Frame")
-	container.Size = UDim2.new(1, 0, 0, 34)
-	container.BackgroundColor3 = VoidTheme.Card
-	container.BorderSizePixel = 0
-	container.ClipsDescendants = true
-	container.LayoutOrder = layoutOrder
-	container.Parent = parent
-
-	local containerCorner = Instance.new("UICorner")
-	containerCorner.CornerRadius = UDim.new(0, 8)
-	containerCorner.Parent = container
-
-	local headerBtn = Instance.new("TextButton")
-	headerBtn.Size = UDim2.new(1, 0, 0, 34)
-	headerBtn.BackgroundTransparency = 1
-	headerBtn.Text = "  >  " .. titleText
-	headerBtn.TextColor3 = VoidTheme.TextDark
-	headerBtn.Font = Enum.Font.GothamBold
-	headerBtn.TextSize = 11
-	headerBtn.TextXAlignment = Enum.TextXAlignment.Left
-	headerBtn.Parent = container
-
-	local contentArea = Instance.new("Frame")
-	contentArea.Size = UDim2.new(1, -16, 0, 0)
-	contentArea.Position = UDim2.new(0, 8, 0, 38)
-	contentArea.BackgroundTransparency = 1
-	contentArea.Visible = false
-	contentArea.Parent = container
-
-	local ctrlFrame = Instance.new("Frame")
-	ctrlFrame.Size = UDim2.new(1, 0, 0, 24)
-	ctrlFrame.BackgroundTransparency = 1
-	ctrlFrame.Parent = contentArea
-
-	local selectAllBtn = Instance.new("TextButton")
-	selectAllBtn.Size = UDim2.new(0.48, 0, 1, 0)
-	selectAllBtn.BackgroundColor3 = VoidTheme.ItemBg
-	selectAllBtn.BorderSizePixel = 0
-	selectAllBtn.Text = "Select All"
-	selectAllBtn.TextColor3 = VoidTheme.TextPrimary
-	selectAllBtn.Font = Enum.Font.GothamMedium
-	selectAllBtn.TextSize = 10
-	selectAllBtn.Parent = ctrlFrame
-
-	local selectAllCorner = Instance.new("UICorner")
-	selectAllCorner.CornerRadius = UDim.new(0, 6)
-	selectAllCorner.Parent = selectAllBtn
-
-	local deselectAllBtn = Instance.new("TextButton")
-	deselectAllBtn.Size = UDim2.new(0.48, 0, 1, 0)
-	deselectAllBtn.Position = UDim2.new(0.52, 0, 0, 0)
-	deselectAllBtn.BackgroundColor3 = VoidTheme.ItemBg
-	deselectAllBtn.BorderSizePixel = 0
-	deselectAllBtn.Text = "Deselect All"
-	deselectAllBtn.TextColor3 = VoidTheme.TextPrimary
-	deselectAllBtn.Font = Enum.Font.GothamMedium
-	deselectAllBtn.TextSize = 10
-	deselectAllBtn.Parent = ctrlFrame
-
-	local deselectCorner = Instance.new("UICorner")
-	deselectCorner.CornerRadius = UDim.new(0, 6)
-	deselectCorner.Parent = deselectAllBtn
-
-	local itemsContainer = Instance.new("Frame")
-	itemsContainer.Size = UDim2.new(1, 0, 0, #itemsList * 28)
-	itemsContainer.Position = UDim2.new(0, 0, 0, 30)
-	itemsContainer.BackgroundTransparency = 1
-	itemsContainer.Parent = contentArea
-
-	local itemsLayout = Instance.new("UIListLayout")
-	itemsLayout.Padding = UDim.new(0, 4)
-	itemsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	itemsLayout.Parent = itemsContainer
-
-	local toggleSetters = {}
-
-	for idx, item in ipairs(itemsList) do
-		local row = Instance.new("Frame")
-		row.Size = UDim2.new(1, 0, 0, 24)
-		row.BackgroundColor3 = VoidTheme.ItemBg
-		row.BorderSizePixel = 0
-		row.LayoutOrder = idx
-		row.Parent = itemsContainer
-
-		local rowCorner = Instance.new("UICorner")
-		rowCorner.CornerRadius = UDim.new(0, 6)
-		rowCorner.Parent = row
-
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.new(1, -36, 1, 0)
-		label.Position = UDim2.new(0, 10, 0, 0)
-		label.BackgroundTransparency = 1
-		label.Text = item.name
-		label.TextColor3 = VoidTheme.TextPrimary
-		label.TextSize = 11
-		label.Font = Enum.Font.Gotham
-		label.TextXAlignment = Enum.TextXAlignment.Left
-		label.Parent = row
-
-		local checkBtn = Instance.new("TextButton")
-		checkBtn.Size = UDim2.new(0, 16, 0, 16)
-		checkBtn.Position = UDim2.new(1, -22, 0.5, -8)
-		checkBtn.BackgroundColor3 = VoidTheme.Accent
-		checkBtn.BorderSizePixel = 0
-		checkBtn.Text = "v"
-		checkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-		checkBtn.Font = Enum.Font.GothamBold
-		checkBtn.TextSize = 10
-		checkBtn.Parent = row
-
-		local checkCorner = Instance.new("UICorner")
-		checkCorner.CornerRadius = UDim.new(0, 4)
-		checkCorner.Parent = checkBtn
-
-		local function updateCheck(state)
-			selectionTable[item.id] = state
-			local color = state and VoidTheme.Accent or VoidTheme.ToggleOff
-			TweenService:Create(checkBtn, TweenInfo.new(0.15), {BackgroundColor3 = color}):Play()
-			checkBtn.Text = state and "v" or ""
-		end
-
-		checkBtn.MouseButton1Click:Connect(function()
-			updateCheck(not selectionTable[item.id])
-		end)
-
-		table.insert(toggleSetters, updateCheck)
-	end
-
-	selectAllBtn.MouseButton1Click:Connect(function()
-		for _, setter in ipairs(toggleSetters) do setter(true) end
-	end)
-
-	deselectAllBtn.MouseButton1Click:Connect(function()
-		for _, setter in ipairs(toggleSetters) do setter(false) end
-	end)
-
-	local isExpanded = false
-	headerBtn.MouseButton1Click:Connect(function()
-		isExpanded = not isExpanded
-		local targetHeight = isExpanded and (38 + 30 + (#itemsList * 28)) or 34
-		headerBtn.Text = (isExpanded and "  v  " or "  >  ") .. titleText
-		headerBtn.TextColor3 = isExpanded and VoidTheme.AccentGlow or VoidTheme.TextDark
-
-		if isExpanded then contentArea.Visible = true end
-
-		local tween = TweenService:Create(container, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-			Size = UDim2.new(1, 0, 0, targetHeight)
-		})
-		tween:Play()
-		tween.Completed:Connect(function()
-			if not isExpanded then contentArea.Visible = false end
-			updateScrollSize()
-		end)
-	end)
-end
-
-createToggleRow(scrollFrame, "Auto Train (x2 Speed)", 1, function(val)
-	autoTrainEnabled = val
-	if not autoTrainEnabled then
-		cancelCurrentTween()
-		task.wait(0.05)
-		singleJump()
-	end
-end)
-
-createToggleRow(scrollFrame, "Auto Steal Eggs", 2, function(val)
-	stealEggEnabled = val
-	if stealEggEnabled then
-		task.spawn(function()
-			local self = getfenv().stealBestEggFunc
-			if self then self() end
-		end)
-	else
-		cancelCurrentTween()
-	end
-end)
-
-createAccordionSection(scrollFrame, "Filter Rarities", rarityList, selectedRarities, 3)
-createAccordionSection(scrollFrame, "Filter Mutations", mutationList, selectedMutations, 4)
-
-local isMinimized = false
-minimizeBtn.MouseButton1Click:Connect(function()
-	isMinimized = not isMinimized
-	local targetSize = isMinimized and UDim2.new(0, 330, 0, 42) or UDim2.new(0, 330, 0, 380)
-	minimizeBtn.Text = isMinimized and "+" or "-"
-	TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
-end)
-
-local dragging, dragInput, dragStart, startPos
-titleBar.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = mainFrame.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then dragging = false end
-		end)
-	end
-end)
-
-titleBar.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		dragInput = input
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		local delta = input.Position - dragStart
-		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	end
-end)
 
 local function getMyPlot()
 	local plotsFolder = Workspace:FindFirstChild("Plots")
@@ -822,7 +446,7 @@ local function stealBestEgg()
 				end
 			end
 
-			if not pickedAny me break end
+			if not pickedAny then break end
 			task.wait(0.02)
 		end
 
@@ -838,9 +462,6 @@ local function stealBestEgg()
 	releaseLPM()
 end
 
-getfenv().stealBestEggFunc = stealBestEgg
-
--- ULEPSZONE POBIERANIE DOKŁADNEGO PRZYCISKU Z DRZEWA ZADANEGO W SCREENIE
 local function getX2SpeedButton()
 	local pg = LocalPlayer:FindFirstChild("PlayerGui")
 	if not pg then return nil end
@@ -848,31 +469,17 @@ local function getX2SpeedButton()
 	local se = pg:FindFirstChild("SpeedEffect")
 	if not se then return nil end
 
-	local lc = se:FindFirstChild("LeftContainer")
-	if not lc then return nil end
+	local x2Frame = se:FindFirstChild("x2SpeedFrame", true)
+	if x2Frame then
+		return x2Frame:FindFirstChild("Button", true) or x2Frame:FindFirstChild("x2Speed", true) or x2Frame
+	end
 
-	local cur = lc:FindFirstChild("Currency")
-	if not cur then return nil end
-
-	local sp = cur:FindFirstChild("Speed")
-	if not sp then return nil end
-
-	local frame = sp:FindFirstChild("x2SpeedFrame")
-	if not frame then return nil end
-
-	local x2 = frame:FindFirstChild("x2Speed")
-	if not x2 then return nil end
-
-	-- BAZUJĄC NA ZRZUCIE EKRANU: WŁAŚCIWY GUZIK TO "Button" WNĄTRZ "x2Speed"
-	return x2:FindFirstChild("Button") or x2
+	return nil
 end
 
--- KLIKANIE BEZPOŚREDNIO W WŁAŚCIWY PRZYCISK Z PEŁNYM POKRYCIEM OBSŁUGI EVENTÓW
 local function clickGuiObject(guiObject)
 	if not guiObject or not guiObject:IsA("GuiObject") then return end
-
-	-- Sprawdzenie czy element lub jego rodzic nie są ukryci
-	if not guiObject.Visible then return end
+	if guiObject.AbsoluteSize.X <= 0 or guiObject.AbsoluteSize.Y <= 0 then return end
 
 	local pos = guiObject.AbsolutePosition
 	local size = guiObject.AbsoluteSize
@@ -881,7 +488,6 @@ local function clickGuiObject(guiObject)
 	local centerY = pos.Y + (size.Y / 2)
 	local insetY = GuiService:GetGuiInset().Y
 
-	-- Metoda 1: firesignal (jeśli Twój executor wspiera)
 	if firesignal then
 		pcall(function() firesignal(guiObject.MouseButton1Click) end)
 		pcall(function() firesignal(guiObject.Activated) end)
@@ -889,9 +495,8 @@ local function clickGuiObject(guiObject)
 		pcall(function() firesignal(guiObject.MouseButton1Up) end)
 	end
 
-	-- Metoda 2: getconnections (wywoływanie przypiętych funkcji Robloxa)
 	if getconnections then
-		for _, eventName in ipairs({"MouseButton1Click", "Activated", "MouseButton1Down", "MouseButton1Up", "TouchTap", "InputBegan"}) do
+		for _, eventName in ipairs({"MouseButton1Click", "Activated", "MouseButton1Down", "MouseButton1Up", "TouchTap"}) do
 			local connTable = guiObject[eventName]
 			if connTable then
 				for _, conn in pairs(getconnections(connTable)) do
@@ -901,20 +506,392 @@ local function clickGuiObject(guiObject)
 		end
 	end
 
-	-- Metoda 3: Symulacja myszki z uwzględnieniem GuiInset
 	pcall(function()
 		VirtualInputManager:SendMouseButtonEvent(centerX, centerY + insetY, 0, true, game, 0)
 		task.wait(0.01)
 		VirtualInputManager:SendMouseButtonEvent(centerX, centerY + insetY, 0, false, game, 0)
 	end)
 
-	-- Metoda 4: Symulacja bez offsetu (zależne od wyskalowania ekranu)
 	pcall(function()
 		VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
 		task.wait(0.01)
 		VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
 	end)
 end
+
+-- TWORZENIE INTERFEJSU
+local existingGui = LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("VoidStealer_Pro")
+if existingGui then existingGui:Destroy() end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "VoidStealer_Pro"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 330, 0, 380)
+mainFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
+mainFrame.BackgroundColor3 = VoidTheme.Background
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 14)
+mainCorner.Parent = mainFrame
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = VoidTheme.Accent
+mainStroke.Thickness = 2
+mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+mainStroke.Parent = mainFrame
+
+task.spawn(function()
+	while screenGui and screenGui.Parent do
+		TweenService:Create(mainStroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Color = VoidTheme.AccentGlow}):Play()
+		task.wait(1.5)
+		TweenService:Create(mainStroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Color = VoidTheme.Accent}):Play()
+		task.wait(1.5)
+	end
+end)
+
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 42)
+titleBar.BackgroundColor3 = VoidTheme.Header
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 14)
+titleCorner.Parent = titleBar
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -50, 1, 0)
+titleLabel.Position = UDim2.new(0, 14, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "VOID HUB"
+titleLabel.TextColor3 = VoidTheme.TextPrimary
+titleLabel.TextSize = 14
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = titleBar
+
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 28, 0, 28)
+minimizeBtn.Position = UDim2.new(1, -34, 0.5, -14)
+minimizeBtn.BackgroundColor3 = VoidTheme.Card
+minimizeBtn.BorderSizePixel = 0
+minimizeBtn.Text = "-"
+minimizeBtn.TextColor3 = VoidTheme.TextPrimary
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.TextSize = 18
+minimizeBtn.Parent = titleBar
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 8)
+minCorner.Parent = minimizeBtn
+
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -16, 1, -52)
+scrollFrame.Position = UDim2.new(0, 8, 0, 48)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 3
+scrollFrame.ScrollBarImageColor3 = VoidTheme.Accent
+scrollFrame.Parent = mainFrame
+
+local mainLayout = Instance.new("UIListLayout")
+mainLayout.Padding = UDim.new(0, 8)
+mainLayout.SortOrder = Enum.SortOrder.LayoutOrder
+mainLayout.Parent = scrollFrame
+
+local function updateScrollSize()
+	scrollFrame.CanvasSize = UDim2.new(0, 0, 0, mainLayout.AbsoluteContentSize.Y + 16)
+end
+mainLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateScrollSize)
+
+local function createToggleRow(parent, text, layoutOrder, callback)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 0, 38)
+	frame.BackgroundColor3 = VoidTheme.Card
+	frame.BorderSizePixel = 0
+	frame.LayoutOrder = layoutOrder
+	frame.Parent = parent
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = frame
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, -60, 1, 0)
+	label.Position = UDim2.new(0, 12, 0, 0)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = VoidTheme.TextPrimary
+	label.TextSize = 12
+	label.Font = Enum.Font.GothamMedium
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = frame
+
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 44, 0, 22)
+	btn.Position = UDim2.new(1, -52, 0.5, -11)
+	btn.BackgroundColor3 = VoidTheme.ToggleOff
+	btn.BorderSizePixel = 0
+	btn.Text = ""
+	btn.Parent = frame
+
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(1, 0)
+	btnCorner.Parent = btn
+
+	local circle = Instance.new("Frame")
+	circle.Size = UDim2.new(0, 16, 0, 16)
+	circle.Position = UDim2.new(0, 3, 0.5, -8)
+	circle.BackgroundColor3 = VoidTheme.ToggleOffCircle
+	circle.BorderSizePixel = 0
+	circle.Parent = btn
+
+	local circleCorner = Instance.new("UICorner")
+	circleCorner.CornerRadius = UDim.new(1, 0)
+	circleCorner.Parent = circle
+
+	local isToggled = false
+
+	local function setToggle(val)
+		isToggled = val
+		local targetColor = isToggled and VoidTheme.Accent or VoidTheme.ToggleOff
+		local targetCirclePos = isToggled and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
+		local targetCircleColor = isToggled and Color3.fromRGB(255, 255, 255) or VoidTheme.ToggleOffCircle
+
+		TweenService:Create(btn, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {BackgroundColor3 = targetColor}):Play()
+		TweenService:Create(circle, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = targetCirclePos,
+			BackgroundColor3 = targetCircleColor
+		}):Play()
+
+		callback(isToggled)
+	end
+
+	btn.MouseButton1Click:Connect(function()
+		setToggle(not isToggled)
+	end)
+
+	return setToggle
+end
+
+local function createAccordionSection(parent, titleText, itemsList, selectionTable, layoutOrder)
+	local container = Instance.new("Frame")
+	container.Size = UDim2.new(1, 0, 0, 34)
+	container.BackgroundColor3 = VoidTheme.Card
+	container.BorderSizePixel = 0
+	container.ClipsDescendants = true
+	container.LayoutOrder = layoutOrder
+	container.Parent = parent
+
+	local containerCorner = Instance.new("UICorner")
+	containerCorner.CornerRadius = UDim.new(0, 8)
+	containerCorner.Parent = container
+
+	local headerBtn = Instance.new("TextButton")
+	headerBtn.Size = UDim2.new(1, 0, 0, 34)
+	headerBtn.BackgroundTransparency = 1
+	headerBtn.Text = "  >  " .. titleText
+	headerBtn.TextColor3 = VoidTheme.TextDark
+	headerBtn.Font = Enum.Font.GothamBold
+	headerBtn.TextSize = 11
+	headerBtn.TextXAlignment = Enum.TextXAlignment.Left
+	headerBtn.Parent = container
+
+	local contentArea = Instance.new("Frame")
+	contentArea.Size = UDim2.new(1, -16, 0, 0)
+	contentArea.Position = UDim2.new(0, 8, 0, 38)
+	contentArea.BackgroundTransparency = 1
+	contentArea.Visible = false
+	contentArea.Parent = container
+
+	local ctrlFrame = Instance.new("Frame")
+	ctrlFrame.Size = UDim2.new(1, 0, 0, 24)
+	ctrlFrame.BackgroundTransparency = 1
+	ctrlFrame.Parent = contentArea
+
+	local selectAllBtn = Instance.new("TextButton")
+	selectAllBtn.Size = UDim2.new(0.48, 0, 1, 0)
+	selectAllBtn.BackgroundColor3 = VoidTheme.ItemBg
+	selectAllBtn.BorderSizePixel = 0
+	selectAllBtn.Text = "Select All"
+	selectAllBtn.TextColor3 = VoidTheme.TextPrimary
+	selectAllBtn.Font = Enum.Font.GothamMedium
+	selectAllBtn.TextSize = 10
+	selectAllBtn.Parent = ctrlFrame
+
+	local selectAllCorner = Instance.new("UICorner")
+	selectAllCorner.CornerRadius = UDim.new(0, 6)
+	selectAllCorner.Parent = selectAllBtn
+
+	local deselectAllBtn = Instance.new("TextButton")
+	deselectAllBtn.Size = UDim2.new(0.48, 0, 1, 0)
+	deselectAllBtn.Position = UDim2.new(0.52, 0, 0, 0)
+	deselectAllBtn.BackgroundColor3 = VoidTheme.ItemBg
+	deselectAllBtn.BorderSizePixel = 0
+	deselectAllBtn.Text = "Deselect All"
+	deselectAllBtn.TextColor3 = VoidTheme.TextPrimary
+	deselectAllBtn.Font = Enum.Font.GothamMedium
+	deselectAllBtn.TextSize = 10
+	deselectAllBtn.Parent = ctrlFrame
+
+	local deselectCorner = Instance.new("UICorner")
+	deselectCorner.CornerRadius = UDim.new(0, 6)
+	deselectCorner.Parent = deselectAllBtn
+
+	local itemsContainer = Instance.new("Frame")
+	itemsContainer.Size = UDim2.new(1, 0, 0, #itemsList * 28)
+	itemsContainer.Position = UDim2.new(0, 0, 0, 30)
+	itemsContainer.BackgroundTransparency = 1
+	itemsContainer.Parent = contentArea
+
+	local itemsLayout = Instance.new("UIListLayout")
+	itemsLayout.Padding = UDim.new(0, 4)
+	itemsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	itemsLayout.Parent = itemsContainer
+
+	local toggleSetters = {}
+
+	for idx, item in ipairs(itemsList) do
+		local row = Instance.new("Frame")
+		row.Size = UDim2.new(1, 0, 0, 24)
+		row.BackgroundColor3 = VoidTheme.ItemBg
+		row.BorderSizePixel = 0
+		row.LayoutOrder = idx
+		row.Parent = itemsContainer
+
+		local rowCorner = Instance.new("UICorner")
+		rowCorner.CornerRadius = UDim.new(0, 6)
+		rowCorner.Parent = row
+
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, -36, 1, 0)
+		label.Position = UDim2.new(0, 10, 0, 0)
+		label.BackgroundTransparency = 1
+		label.Text = item.name
+		label.TextColor3 = VoidTheme.TextPrimary
+		label.TextSize = 11
+		label.Font = Enum.Font.Gotham
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		label.Parent = row
+
+		local checkBtn = Instance.new("TextButton")
+		checkBtn.Size = UDim2.new(0, 16, 0, 16)
+		checkBtn.Position = UDim2.new(1, -22, 0.5, -8)
+		checkBtn.BackgroundColor3 = VoidTheme.Accent
+		checkBtn.BorderSizePixel = 0
+		checkBtn.Text = "v"
+		checkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		checkBtn.Font = Enum.Font.GothamBold
+		checkBtn.TextSize = 10
+		checkBtn.Parent = row
+
+		local checkCorner = Instance.new("UICorner")
+		checkCorner.CornerRadius = UDim.new(0, 4)
+		checkCorner.Parent = checkBtn
+
+		local function updateCheck(state)
+			selectionTable[item.id] = state
+			local color = state and VoidTheme.Accent or VoidTheme.ToggleOff
+			TweenService:Create(checkBtn, TweenInfo.new(0.15), {BackgroundColor3 = color}):Play()
+			checkBtn.Text = state and "v" or ""
+		end
+
+		checkBtn.MouseButton1Click:Connect(function()
+			updateCheck(not selectionTable[item.id])
+		end)
+
+		table.insert(toggleSetters, updateCheck)
+	end
+
+	selectAllBtn.MouseButton1Click:Connect(function()
+		for _, setter in ipairs(toggleSetters) do setter(true) end
+	end)
+
+	deselectAllBtn.MouseButton1Click:Connect(function()
+		for _, setter in ipairs(toggleSetters) do setter(false) end
+	end)
+
+	local isExpanded = false
+	headerBtn.MouseButton1Click:Connect(function()
+		isExpanded = not isExpanded
+		local targetHeight = isExpanded and (38 + 30 + (#itemsList * 28)) or 34
+		headerBtn.Text = (isExpanded and "  v  " or "  >  ") .. titleText
+		headerBtn.TextColor3 = isExpanded and VoidTheme.AccentGlow or VoidTheme.TextDark
+
+		if isExpanded then contentArea.Visible = true end
+
+		local tween = TweenService:Create(container, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Size = UDim2.new(1, 0, 0, targetHeight)
+		})
+		tween:Play()
+		tween.Completed:Connect(function()
+			if not isExpanded then contentArea.Visible = false end
+			updateScrollSize()
+		end)
+	end)
+end
+
+createToggleRow(scrollFrame, "Auto Train (x2 Speed)", 1, function(val)
+	autoTrainEnabled = val
+	if not autoTrainEnabled then
+		cancelCurrentTween()
+		task.wait(0.05)
+		singleJump()
+	end
+end)
+
+createToggleRow(scrollFrame, "Auto Steal Eggs", 2, function(val)
+	stealEggEnabled = val
+	if stealEggEnabled then
+		task.spawn(stealBestEgg)
+	else
+		cancelCurrentTween()
+	end
+end)
+
+createAccordionSection(scrollFrame, "Filter Rarities", rarityList, selectedRarities, 3)
+createAccordionSection(scrollFrame, "Filter Mutations", mutationList, selectedMutations, 4)
+
+local isMinimized = false
+minimizeBtn.MouseButton1Click:Connect(function()
+	isMinimized = not isMinimized
+	local targetSize = isMinimized and UDim2.new(0, 330, 0, 42) or UDim2.new(0, 330, 0, 380)
+	minimizeBtn.Text = isMinimized and "+" or "-"
+	TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
+end)
+
+local dragging, dragInput, dragStart, startPos
+titleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then dragging = false end
+		end)
+	end
+end)
+
+titleBar.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
 
 -- PĘTLA AUTO-TRAIN
 task.spawn(function()
