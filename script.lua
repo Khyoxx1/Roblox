@@ -70,7 +70,6 @@ local selectedRarities, selectedMutations = {}, {}
 for _, r in ipairs(rarityList) do selectedRarities[r.id] = true end
 for _, m in ipairs(mutationList) do selectedMutations[m.id] = true end
 
--- Re-injection cleanup
 local existingGui = LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("VoidStealer_Pro")
 if existingGui then existingGui:Destroy() end
 
@@ -163,7 +162,6 @@ local function updateScrollSize()
 end
 mainLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateScrollSize)
 
--- Helpers Movement & Jump
 local isTweening = false
 local currentTween = nil
 
@@ -175,18 +173,13 @@ local function cancelCurrentTween()
 	isTweening = false
 end
 
-local function forceJump()
+-- Dokładnie jeden pojedynczy skok
+local function singleJump()
 	local char = LocalPlayer.Character
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
 	if hum then
-		hum.Jump = true
 		hum:ChangeState(Enum.HumanoidStateType.Jumping)
 	end
-	pcall(function()
-		VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
-		task.wait(0.03)
-		VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
-	end)
 end
 
 local function createToggleRow(parent, text, layoutOrder, callback)
@@ -416,18 +409,12 @@ local function createAccordionSection(parent, titleText, itemsList, selectionTab
 	end)
 end
 
--- Toggles Init
 createToggleRow(scrollFrame, "Auto Train (x2 Speed)", 1, function(val)
 	autoTrainEnabled = val
 	if not autoTrainEnabled then
 		cancelCurrentTween()
-		-- Seria skoków gwarantująca wyjście z trybu treningowego
-		task.spawn(function()
-			for i = 1, 3 do
-				forceJump()
-				task.wait(0.1)
-			end
-		end)
+		task.wait(0.05)
+		singleJump()
 	end
 end)
 
@@ -446,7 +433,6 @@ end)
 createAccordionSection(scrollFrame, "Filter Rarities", rarityList, selectedRarities, 3)
 createAccordionSection(scrollFrame, "Filter Mutations", mutationList, selectedMutations, 4)
 
--- Minimize & Dragging Logic
 local isMinimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
 	isMinimized = not isMinimized
@@ -480,16 +466,38 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- Gameplay Functions
+-- Zaawansowane i niezawodne wykrywanie działki gracza
 local function getMyPlot()
 	local plotsFolder = Workspace:FindFirstChild("Plots")
 	if not plotsFolder then return nil end
-	local playerName = LocalPlayer.Name
+	local pName = LocalPlayer.Name:lower()
+	local dName = LocalPlayer.DisplayName:lower()
+
 	for _, plotFolder in pairs(plotsFolder:GetChildren()) do
-		for _, subPlot in pairs(plotFolder:GetChildren()) do
-			for _, child in pairs(subPlot:GetChildren()) do
-				if child.Name:find(playerName) then return subPlot end
+		local targets = (#plotFolder:GetChildren() > 0) and plotFolder:GetChildren() or {plotFolder}
+		for _, subPlot in pairs(targets) do
+			local ownerAttr = subPlot:GetAttribute("Owner") or subPlot:GetAttribute("OwnerId") or subPlot:GetAttribute("Player")
+			if ownerAttr and (tostring(ownerAttr):lower() == pName or ownerAttr == LocalPlayer.UserId) then
+				return subPlot
 			end
+			for _, child in pairs(subPlot:GetChildren()) do
+				local cName = child.Name:lower()
+				if cName:find(pName) or (dName ~= "" and cName:find(dName)) then
+					return subPlot
+				end
+			end
+		end
+	end
+	return nil
+end
+
+local function getTrainingPlaceholder(plot)
+	if not plot then return nil end
+	local ph = plot:FindFirstChild("TrainingAreaPlaceholder") or plot:FindFirstChild("TrainingArea")
+	if ph then return ph end
+	for _, v in pairs(plot:GetDescendants()) do
+		if v:IsA("BasePart") and v.Name:lower():find("train") then
+			return v
 		end
 	end
 	return nil
@@ -505,12 +513,22 @@ local function tweenTo(targetCFrame, speedStuds)
 	isTweening = true
 	local distance = (hrp.Position - targetCFrame.Position).Magnitude
 	local speed = speedStuds or 280
-	local duration = math.clamp(distance / speed, 0.01, 1.0)
+	local duration = math.clamp(distance / speed, 0.01, 2.0)
 
 	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	currentTween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
 	currentTween:Play()
-	currentTween.Completed:Wait()
+
+	local completed = false
+	local conn
+	conn = currentTween.Completed:Connect(function()
+		completed = true
+		if conn then conn:Disconnect() end
+	end)
+
+	while not completed and isTweening do
+		task.wait(0.02)
+	end
 	isTweening = false
 end
 
@@ -519,7 +537,7 @@ local function getSafeZoneCFrame()
 	if not line then return nil end
 	local myPlot = getMyPlot()
 	if myPlot then
-		local placeholder = myPlot:FindFirstChild("TrainingAreaPlaceholder")
+		local placeholder = getTrainingPlaceholder(myPlot)
 		if placeholder then
 			local linePos = line.Position
 			local placeholderPos = placeholder.Position
@@ -535,15 +553,16 @@ local function tweenToTrainingArea()
 	if isTweening then return end
 	local myPlot = getMyPlot()
 	if not myPlot then return end
-	local placeholder = myPlot:FindFirstChild("TrainingAreaPlaceholder")
+	local placeholder = getTrainingPlaceholder(myPlot)
 	if not placeholder then return end
+
 	local character = LocalPlayer.Character
 	if not character then return end
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 
 	local targetCFrame = placeholder.CFrame * CFrame.new(0, 3, 0)
-	if (hrp.Position - targetCFrame.Position).Magnitude > 4 then
+	if (hrp.Position - targetCFrame.Position).Magnitude > 3 then
 		tweenTo(targetCFrame, 280)
 	end
 end
@@ -551,12 +570,13 @@ end
 local function isPlayerInTrainingArea()
 	local myPlot = getMyPlot()
 	if not myPlot then return false end
-	local placeholder = myPlot:FindFirstChild("TrainingAreaPlaceholder")
+	local placeholder = getTrainingPlaceholder(myPlot)
 	if not placeholder then return false end
 	local character = LocalPlayer.Character
 	if not character then return false end
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return false end
+
 	return (hrp.Position - placeholder.Position).Magnitude <= 6
 end
 
@@ -748,7 +768,7 @@ local function stealBestEgg()
 		if safeCFrame then
 			tweenTo(safeCFrame, 280)
 		elseif isPlayerInTrainingArea() then
-			forceJump()
+			singleJump()
 			task.wait(0.05)
 		end
 
@@ -814,7 +834,6 @@ end
 
 getfenv().stealBestEggFunc = stealBestEgg
 
--- Dynamic Dynamic UI Detection & Universal Clicker
 local function getX2SpeedObject()
 	local pGui = LocalPlayer:FindFirstChild("PlayerGui")
 	if not pGui then return nil end
@@ -826,15 +845,11 @@ end
 local function clickGuiObject(guiObject)
 	if not guiObject or not guiObject:IsA("GuiObject") then return end
 
-	-- Metoda 1: getconnections (odpalenie zdarzeń guzików w executorze)
-	local fired = false
 	if getconnections then
-		for _, conn in pairs(getconnections(guiObject.MouseButton1Click)) do conn:Fire() fired = true end
-		for _, conn in pairs(getconnections(guiObject.MouseButton1Down)) do conn:Fire() fired = true end
-		for _, conn in pairs(getconnections(guiObject.Activated)) do conn:Fire() fired = true end
+		for _, conn in pairs(getconnections(guiObject.MouseButton1Click)) do conn:Fire() end
+		for _, conn in pairs(getconnections(guiObject.Activated)) do conn:Fire() end
 	end
 
-	-- Metoda 2: Zawsze wyliczaj dokładną pozycję ekranową na żywo (jako zapas / natywna emulacja myszki)
 	local insetY = GuiService:GetGuiInset().Y
 	local pos = guiObject.AbsolutePosition
 	local size = guiObject.AbsoluteSize
@@ -846,10 +861,10 @@ local function clickGuiObject(guiObject)
 	VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
 end
 
--- Pętla Treningu
+-- Główna pętla treningu
 task.spawn(function()
 	while true do
-		task.wait(0.03)
+		task.wait(0.1)
 		if autoTrainEnabled and not stealEggEnabled then
 			if not isPlayerInTrainingArea() then
 				tweenToTrainingArea()
